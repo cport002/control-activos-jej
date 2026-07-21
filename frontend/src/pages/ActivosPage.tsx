@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import type { Activo } from '../types'
 import { TIPOS_ACTIVO } from '../types'
@@ -15,10 +15,11 @@ const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', nume
 
 export default function ActivosPage() {
   const { puedeEditar } = useAuth()
+  const [searchParams] = useSearchParams()
   const [activos, setActivos] = useState<Activo[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState(searchParams.get('estado') || '')
   const [filtroTipo, setFiltroTipo] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import api, { whatsappUrl } from '../services/api'
 import type { Profesional } from '../types'
 import { useAuth } from '../hooks/useAuth'
@@ -14,7 +15,6 @@ export default function ProfesionalesPage() {
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editando, setEditando] = useState<Profesional | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
 
   const cargar = () => {
@@ -42,23 +42,13 @@ export default function ProfesionalesPage() {
     window.open(whatsappUrl(p.telefono, mensaje), '_blank')
   }
 
-  const abrirNuevo = () => { setEditando(null); setForm(FORM_INICIAL); setShowForm(true) }
-  const abrirEditar = (p: Profesional) => {
-    setEditando(p)
-    setForm({ nombre: p.nombre, rut: p.rut || '', cargo: p.cargo || '', cco: p.cco || '', email: p.email || '', telefono: p.telefono || '' })
-    setShowForm(true)
-  }
+  const abrirNuevo = () => { setForm(FORM_INICIAL); setShowForm(true) }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      if (editando) {
-        await api.put(`/profesionales/${editando.id}`, form)
-        toast.success('Profesional actualizado')
-      } else {
-        await api.post('/profesionales', form)
-        toast.success('Profesional registrado')
-      }
+      await api.post('/profesionales', form)
+      toast.success('Profesional registrado')
       setShowForm(false)
       cargar()
     } catch (err: any) {
@@ -118,11 +108,9 @@ export default function ProfesionalesPage() {
                         <MessageCircle className="w-4 h-4" />
                       </button>
                     )}
-                    {puedeEditar && (
-                      <button onClick={() => abrirEditar(p)} className="text-gray-400 hover:text-primary-600 transition-colors">
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    )}
+                    <Link to={`/profesionales/${p.id}`} className="text-gray-400 hover:text-primary-600 transition-colors">
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
                   </div>
                 </td>
               </tr>
@@ -138,7 +126,7 @@ export default function ProfesionalesPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
-              <h2>{editando ? 'Editar profesional' : 'Nuevo profesional'}</h2>
+              <h2>Nuevo profesional</h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
@@ -171,7 +159,7 @@ export default function ProfesionalesPage() {
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary">{editando ? 'Guardar cambios' : 'Registrar Profesional'}</button>
+                <button type="submit" className="btn-primary">Registrar Profesional</button>
               </div>
             </form>
           </div>

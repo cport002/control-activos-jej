@@ -25,10 +25,10 @@ export default function DashboardPage() {
   const deBaja = activos.filter(a => a.estado === 'de_baja').length
 
   const cards = [
-    { label: 'Total activos', value: activos.length, icon: Boxes, color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Disponibles', value: disponibles, icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50' },
-    { label: 'Asignados', value: asignados, icon: UserCheck, color: 'text-blue-600 bg-blue-50' },
-    { label: 'De baja', value: deBaja, icon: Archive, color: 'text-gray-500 bg-gray-100' },
+    { label: 'Total activos', value: activos.length, icon: Boxes, color: 'text-indigo-600 bg-indigo-50', to: '/activos' },
+    { label: 'Disponibles', value: disponibles, icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50', to: '/activos?estado=disponible' },
+    { label: 'Asignados', value: asignados, icon: UserCheck, color: 'text-blue-600 bg-blue-50', to: '/activos?estado=asignado' },
+    { label: 'De baja', value: deBaja, icon: Archive, color: 'text-gray-500 bg-gray-100', to: '/activos?estado=de_baja' },
   ]
 
   return (
@@ -37,13 +37,13 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {cards.map(c => (
-          <div key={c.label} className="card p-4">
+          <Link key={c.label} to={c.to} className="card p-4 card-hover">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${c.color}`}>
               <c.icon className="w-4.5 h-4.5" />
             </div>
             <p className="text-2xl font-bold text-gray-900">{c.value}</p>
             <p className="text-xs text-gray-400 mt-0.5">{c.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

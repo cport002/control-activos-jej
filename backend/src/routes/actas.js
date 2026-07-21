@@ -116,4 +116,18 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// DELETE /api/actas/:id — elimina una acta (ej. firma de prueba), permite volver a firmar
+router.delete('/:id', autenticar, autorizar('admin', 'operador'), async (req, res) => {
+  try {
+    const acta = (await sql('SELECT * FROM actas WHERE id = ?', [req.params.id])).rows[0];
+    if (!acta) return res.status(404).json({ error: 'Acta no encontrada' });
+
+    await sql('DELETE FROM acta_fotos WHERE acta_id = ?', [req.params.id]);
+    await sql('DELETE FROM actas WHERE id = ?', [req.params.id]);
+
+    registrarAuditoria('actas', req.params.id, 'DELETE', acta, null, req.usuario.id, req.ip, 'Acta eliminada (permite volver a firmar)');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

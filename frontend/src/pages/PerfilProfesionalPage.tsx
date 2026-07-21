@@ -13,6 +13,7 @@ interface ActivoAsignado {
   modelo?: string | null
   numero_serie?: string | null
   accesorios?: string | null
+  notas?: string | null
   acta_id: number | null
 }
 
@@ -146,6 +147,22 @@ export default function PerfilProfesionalPage() {
                   )}
                 </div>
                 {a.accesorios && <p className="text-xs text-gray-500 mt-2">Accesorios: {a.accesorios}</p>}
+
+                {a.notas && (
+                  <dl className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                    {a.notas.split(' · ').map((item, i) => {
+                      const idx = item.indexOf(':')
+                      const label = idx > -1 ? item.slice(0, idx) : null
+                      const valor = idx > -1 ? item.slice(idx + 1).trim() : item
+                      return (
+                        <div key={i} className="flex justify-between gap-3 text-xs">
+                          {label && <dt className="text-gray-400">{label}</dt>}
+                          <dd className="text-gray-600 text-right">{valor}</dd>
+                        </div>
+                      )
+                    })}
+                  </dl>
+                )}
 
                 {a.acta_id ? (
                   <button onClick={() => descargarPDF(a.acta_id!)} className="btn-secondary w-full mt-3 flex items-center justify-center gap-2">

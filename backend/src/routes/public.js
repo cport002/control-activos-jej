@@ -16,7 +16,7 @@ router.get('/profesional/:token', async (req, res) => {
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const activos = (await sql(`
-      SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.accesorios,
+      SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.accesorios, a.notas,
         ac.id AS acta_id
       FROM activos a
       LEFT JOIN actas ac ON ac.activo_id = a.id AND ac.profesional_id = a.profesional_actual_id AND ac.tipo = 'entrega'

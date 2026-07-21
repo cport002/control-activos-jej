@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import ActivosPage from './pages/ActivosPage'
 import ActivoDetallePage from './pages/ActivoDetallePage'
 import ProfesionalesPage from './pages/ProfesionalesPage'
+import ProfesionalDetallePage from './pages/ProfesionalDetallePage'
 import UsuariosPage from './pages/UsuariosPage'
 import PerfilProfesionalPage from './pages/PerfilProfesionalPage'
 
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="activos" element={<ActivosPage />} />
           <Route path="activos/:id" element={<ActivoDetallePage />} />
           <Route path="profesionales" element={<ProfesionalesPage />} />
+          <Route path="profesionales/:id" element={<ProfesionalDetallePage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -5,7 +5,7 @@ import api, { fmt } from '../services/api'
 import type { Activo, Acta, Profesional } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
@@ -59,6 +59,17 @@ export default function ActivoDetallePage() {
     setObservaciones('')
     setFotos([])
     setTimeout(() => sigRef.current?.clear(), 0)
+  }
+
+  const eliminarActa = async (acta: Acta) => {
+    if (!confirm(`¿Eliminar esta acta de ${tipoLabel[acta.tipo].toLowerCase()} de ${acta.profesional_nombre}? Esto permite volver a firmar (por ejemplo, si era una prueba).`)) return
+    try {
+      await api.delete(`/actas/${acta.id}`)
+      toast.success('Acta eliminada')
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al eliminar el acta')
+    }
   }
 
   const descargarPDF = async (actaId: number) => {
@@ -184,6 +195,7 @@ export default function ActivoDetallePage() {
                 <th className="table-header">Condición</th>
                 <th className="table-header text-center">Evidencia</th>
                 <th className="table-header text-center">PDF</th>
+                {puedeEditar && <th className="table-header text-center">Eliminar</th>}
               </tr>
             </thead>
             <tbody>
@@ -205,10 +217,17 @@ export default function ActivoDetallePage() {
                       <Download className="w-4 h-4 inline" />
                     </button>
                   </td>
+                  {puedeEditar && (
+                    <td className="table-cell text-center">
+                      <button onClick={() => eliminarActa(a)} title="Eliminar acta (permite volver a firmar)" className="text-gray-400 hover:text-red-600 transition-colors">
+                        <Trash2 className="w-4 h-4 inline" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
               {actas.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-10 text-gray-400">Aún no hay actas para este activo</td></tr>
+                <tr><td colSpan={puedeEditar ? 7 : 6} className="text-center py-10 text-gray-400">Aún no hay actas para este activo</td></tr>
               )}
             </tbody>
           </table>
