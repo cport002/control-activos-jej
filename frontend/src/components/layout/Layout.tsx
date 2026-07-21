@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Boxes, UserCog, LogOut, Menu, X, HardHat } from 'lucide-react'
+import { LayoutDashboard, Users, Boxes, UserCog, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import type { Usuario } from '../../types'
 import api from '../../services/api'
@@ -57,8 +57,8 @@ export default function Layout({ auth }: Props) {
         style={{ background: 'linear-gradient(180deg, #312e81 0%, #4338ca 100%)' }}
       >
         <div className="px-5 py-5 border-b border-white/10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-            <HardHat className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-lg bg-white p-1 flex items-center justify-center flex-shrink-0">
+            <img src="/logo-jej.png" alt="JEJ" className="w-full" />
           </div>
           <div className="leading-tight">
             <p className="text-white font-bold text-sm tracking-wide">JEJ INGENIERÍA</p>

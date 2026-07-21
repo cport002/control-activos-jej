@@ -2,7 +2,7 @@ import { useState } from 'react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import type { Usuario } from '../types'
-import { Eye, EyeOff, ArrowRight, CheckCircle, HardHat } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react'
 
 interface Props {
   onLogin: (token: string, usuario: Usuario) => void
@@ -43,8 +43,8 @@ export default function LoginPage({ onLogin }: Props) {
 
         <div className="relative z-10 max-w-md">
           <div className="mb-12">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-8">
-              <HardHat className="w-8 h-8 text-white" />
+            <div className="w-40 rounded-2xl bg-white p-4 shadow-lg mb-8">
+              <img src="/logo-jej.png" alt="JEJ Ingeniería" className="w-full" />
             </div>
 
             <h1 className="text-5xl font-black leading-tight mb-4">
@@ -74,14 +74,9 @@ export default function LoginPage({ onLogin }: Props) {
 
       <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm animate-fade-in">
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <HardHat className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-gray-800 font-bold text-sm">JEJ INGENIERÍA</p>
-              <p className="text-gray-400 text-xs">Control de Activos</p>
-            </div>
+          <div className="lg:hidden mb-10">
+            <img src="/logo-jej.png" alt="JEJ Ingeniería" className="h-12" />
+            <p className="text-gray-400 text-xs mt-1">Control de Activos</p>
           </div>
 
           <div className="mb-8">
