@@ -29,3 +29,8 @@ export default api
 export const fmt = {
   fecha: (s?: string) => s ? new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('es-CL') : '-'
 }
+
+export function whatsappUrl(telefono: string, mensaje: string) {
+  const numero = telefono.replace(/\D/g, '')
+  return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
+}

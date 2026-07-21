@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS profesionales (
   cco TEXT,
   email TEXT,
   telefono TEXT,
+  token TEXT UNIQUE,
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import api from '../services/api'
+import api, { whatsappUrl } from '../services/api'
 import type { Profesional } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { Plus, Search, Users, ChevronRight } from 'lucide-react'
+import { Plus, Search, Users, ChevronRight, Link2, MessageCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '' }
@@ -23,6 +23,24 @@ export default function ProfesionalesPage() {
     api.get('/profesionales', { params }).then(r => { setProfesionales(r.data); setLoading(false) }).catch(() => setLoading(false))
   }
   useEffect(cargar, [busqueda])
+
+  const copiarLink = async (p: Profesional) => {
+    if (!p.token) return
+    const url = `${window.location.origin}/mi-equipo/${p.token}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copiado')
+    } catch {
+      toast.error('No se pudo copiar el link')
+    }
+  }
+
+  const enviarWhatsapp = (p: Profesional) => {
+    if (!p.telefono || !p.token) { toast.error('Este profesional no tiene teléfono registrado'); return }
+    const url = `${window.location.origin}/mi-equipo/${p.token}`
+    const mensaje = `Hola ${p.nombre.split(' ')[0]}! Te escribimos de JEJ Ingeniería. Puedes ver el equipo que tienes asignado y firmar su recepción aquí: ${url}`
+    window.open(whatsappUrl(p.telefono, mensaje), '_blank')
+  }
 
   const abrirNuevo = () => { setEditando(null); setForm(FORM_INICIAL); setShowForm(true) }
   const abrirEditar = (p: Profesional) => {
@@ -89,11 +107,23 @@ export default function ProfesionalesPage() {
                 <td className="table-cell text-gray-600">{p.cco || '-'}</td>
                 <td className="table-cell text-center"><span className={p.activo ? 'badge-green' : 'badge-gray'}>{p.activo ? 'activo' : 'inactivo'}</span></td>
                 <td className="table-cell">
-                  {puedeEditar && (
-                    <button onClick={() => abrirEditar(p)} className="text-gray-400 hover:text-primary-600 transition-colors">
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  )}
+                  <div className="flex items-center justify-end gap-3">
+                    {p.token && (
+                      <button onClick={() => copiarLink(p)} title="Copiar link de firma" className="text-gray-400 hover:text-primary-600 transition-colors">
+                        <Link2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {p.telefono && (
+                      <button onClick={() => enviarWhatsapp(p)} title="Enviar por WhatsApp" className="text-gray-400 hover:text-emerald-600 transition-colors">
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    {puedeEditar && (
+                      <button onClick={() => abrirEditar(p)} className="text-gray-400 hover:text-primary-600 transition-colors">
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

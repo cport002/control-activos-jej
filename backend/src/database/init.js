@@ -1,5 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('./db');
@@ -29,6 +30,14 @@ async function initDatabase() {
       );
       console.log('Usuario admin creado: admin@jejactivos.local / Activos2026!');
     }
+
+    // Migracion: token publico para cada profesional (link de firma)
+    await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS token TEXT UNIQUE;`);
+    const sinToken = await client.query('SELECT id FROM profesionales WHERE token IS NULL');
+    for (const p of sinToken.rows) {
+      await client.query('UPDATE profesionales SET token = $1 WHERE id = $2', [crypto.randomBytes(24).toString('hex'), p.id]);
+    }
+    if (sinToken.rows.length) console.log(`Tokens generados para ${sinToken.rows.length} profesional(es) existente(s).`);
 
     console.log('Base de datos PostgreSQL lista');
   } finally {

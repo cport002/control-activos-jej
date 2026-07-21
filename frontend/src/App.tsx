@@ -8,6 +8,7 @@ import ActivosPage from './pages/ActivosPage'
 import ActivoDetallePage from './pages/ActivoDetallePage'
 import ProfesionalesPage from './pages/ProfesionalesPage'
 import UsuariosPage from './pages/UsuariosPage'
+import PerfilProfesionalPage from './pages/PerfilProfesionalPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth()
@@ -22,6 +23,7 @@ export default function App() {
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <Routes>
         <Route path="/login" element={auth.token ? <Navigate to="/" replace /> : <LoginPage onLogin={auth.login} />} />
+        <Route path="/mi-equipo/:token" element={<PerfilProfesionalPage />} />
         <Route path="/" element={<PrivateRoute><Layout auth={auth} /></PrivateRoute>}>
           <Route index element={<DashboardPage />} />
           <Route path="activos" element={<ActivosPage />} />
