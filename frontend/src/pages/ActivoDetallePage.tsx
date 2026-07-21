@@ -153,6 +153,25 @@ export default function ActivoDetallePage() {
         </div>
       )}
 
+      {activo.notas && (
+        <div className="card p-4">
+          <p className="text-xs text-gray-400 mb-3">Detalle técnico</p>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            {activo.notas.split(' · ').map((item, i) => {
+              const idx = item.indexOf(':')
+              const label = idx > -1 ? item.slice(0, idx) : null
+              const valor = idx > -1 ? item.slice(idx + 1).trim() : item
+              return (
+                <div key={i} className="flex justify-between gap-3 text-sm border-b border-gray-50 pb-1.5">
+                  {label && <dt className="text-gray-400">{label}</dt>}
+                  <dd className="text-gray-700 text-right">{valor}</dd>
+                </div>
+              )
+            })}
+          </dl>
+        </div>
+      )}
+
       <div className="card p-0 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100"><h3>Historial de actas</h3></div>
         <div className="overflow-x-auto">

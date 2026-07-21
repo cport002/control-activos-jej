@@ -95,6 +95,7 @@ async function main() {
       `Disco: ${inv?.disco || row['Disco Duro'] || '-'}`,
       `RAM: ${inv?.ram ? inv.ram + ' GB' : (row['Memoria RAM'] || '-')}`,
       inv?.so ? `SO: ${inv.so}` : null,
+      row['Tipo Equipo'] ? `Gama: ${row['Tipo Equipo']}` : null,
       `CCO: 669`,
       row['Orden Compra'] ? `Orden de Compra: ${row['Orden Compra']}` : null,
       inv?.falla ? `Falla reportada: ${inv.falla}` : null
