@@ -1,5 +1,5 @@
 const express = require('express');
-const { sql } = require('../database/db');
+const { sql, withTransaction } = require('../database/db');
 const { registrarAuditoria } = require('../middleware/auth');
 const { uploadActa } = require('../services/upload');
 const { generarActaPDF } = require('../services/actaPdf');
@@ -65,6 +65,58 @@ router.post('/profesional/:token/activo/:activoId/firmar', uploadActa.fields([
     }
 
     registrarAuditoria('actas', actaId, 'INSERT', null, { activo_id: activo.id, profesional_id: profesional.id, tipo: 'entrega' }, null, req.ip, `Firma de recepción realizada por el propio profesional (${profesional.nombre})`);
+    res.status(201).json({ id: actaId, ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/public/profesional/:token/activo/:activoId/devolver — multipart: firma (requerida), fotos (0-5)
+router.post('/profesional/:token/activo/:activoId/devolver', uploadActa.fields([
+  { name: 'firma', maxCount: 1 },
+  { name: 'fotos', maxCount: 5 }
+]), async (req, res) => {
+  try {
+    const profesional = (await sql('SELECT id, nombre FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    if (!profesional) return res.status(404).json({ error: 'Link no válido' });
+
+    const activo = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.activoId])).rows[0];
+    if (!activo) return res.status(404).json({ error: 'Activo no encontrado' });
+    if (activo.estado !== 'asignado' || activo.profesional_actual_id !== profesional.id) {
+      return res.status(400).json({ error: 'Este equipo no está asignado a ti' });
+    }
+
+    const firmaEntrega = (await sql(
+      "SELECT id FROM actas WHERE activo_id = ? AND profesional_id = ? AND tipo = 'entrega'",
+      [activo.id, profesional.id]
+    )).rows[0];
+    if (!firmaEntrega) return res.status(400).json({ error: 'Primero debes firmar la recepción de este equipo' });
+
+    const yaDevuelta = (await sql(
+      "SELECT id FROM actas WHERE activo_id = ? AND profesional_id = ? AND tipo = 'devolucion'",
+      [activo.id, profesional.id]
+    )).rows[0];
+    if (yaDevuelta) return res.status(400).json({ error: 'Este equipo ya fue devuelto' });
+
+    const firmaFile = req.files?.firma?.[0];
+    if (!firmaFile) return res.status(400).json({ error: 'La firma es requerida' });
+
+    const actaId = await withTransaction(async (tsql) => {
+      const r = await tsql(
+        `INSERT INTO actas (activo_id, profesional_id, tipo, condicion_equipo, observaciones, firma_url)
+         VALUES (?, ?, 'devolucion', 'bueno', ?, ?) RETURNING id`,
+        [activo.id, profesional.id, req.body.observaciones || null, firmaFile.path]
+      );
+      const id = r.rows[0].id;
+
+      const fotos = req.files?.fotos || [];
+      for (const foto of fotos) {
+        await tsql('INSERT INTO acta_fotos (acta_id, foto_url) VALUES (?, ?)', [id, foto.path]);
+      }
+
+      await tsql("UPDATE activos SET estado = 'disponible', profesional_actual_id = NULL, updated_at = NOW() WHERE id = ?", [activo.id]);
+      return id;
+    });
+
+    registrarAuditoria('actas', actaId, 'INSERT', null, { activo_id: activo.id, profesional_id: profesional.id, tipo: 'devolucion' }, null, req.ip, `Firma de devolución realizada por el propio profesional (${profesional.nombre})`);
     res.status(201).json({ id: actaId, ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

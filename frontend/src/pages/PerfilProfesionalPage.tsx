@@ -34,6 +34,7 @@ export default function PerfilProfesionalPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [firmando, setFirmando] = useState<ActivoAsignado | null>(null)
+  const [accion, setAccion] = useState<'entrega' | 'devolucion'>('entrega')
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<File[]>([])
   const [guardando, setGuardando] = useState(false)
@@ -51,8 +52,9 @@ export default function PerfilProfesionalPage() {
   }
   useEffect(cargar, [token])
 
-  const abrirFirmar = (activo: ActivoAsignado) => {
+  const abrirFirmar = (activo: ActivoAsignado, tipo: 'entrega' | 'devolucion') => {
     setFirmando(activo)
+    setAccion(tipo)
     setObservaciones('')
     setFotos([])
     setTimeout(() => sigRef.current?.clear(), 0)
@@ -80,10 +82,11 @@ export default function PerfilProfesionalPage() {
       form.append('firma', firmaBlob, 'firma.png')
       fotos.forEach(f => form.append('fotos', f))
 
-      await api.post(`/public/profesional/${token}/activo/${firmando.id}/firmar`, form, {
+      const endpoint = accion === 'entrega' ? 'firmar' : 'devolver'
+      await api.post(`/public/profesional/${token}/activo/${firmando.id}/${endpoint}`, form, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      toast.success('Recepción firmada, gracias')
+      toast.success(accion === 'entrega' ? 'Recepción firmada, gracias' : 'Devolución registrada, gracias')
       setFirmando(null)
       cargar()
     } catch (err: any) {
@@ -165,11 +168,16 @@ export default function PerfilProfesionalPage() {
                 )}
 
                 {a.acta_id ? (
-                  <button onClick={() => descargarPDF(a.acta_id!)} className="btn-secondary w-full mt-3 flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" /> Ver / descargar PDF firmado
-                  </button>
+                  <div className="mt-3 space-y-2">
+                    <button onClick={() => descargarPDF(a.acta_id!)} className="btn-secondary w-full flex items-center justify-center gap-2">
+                      <Download className="w-4 h-4" /> Ver / descargar PDF firmado
+                    </button>
+                    <button onClick={() => abrirFirmar(a, 'devolucion')} className="btn-primary w-full">
+                      Solicitar devolución de este equipo
+                    </button>
+                  </div>
                 ) : (
-                  <button onClick={() => abrirFirmar(a)} className="btn-primary w-full mt-3">
+                  <button onClick={() => abrirFirmar(a, 'entrega')} className="btn-primary w-full mt-3">
                     Firmar recepción de este equipo
                   </button>
                 )}
@@ -189,7 +197,7 @@ export default function PerfilProfesionalPage() {
             </button>
             <div className="p-6 space-y-4">
               <div>
-                <h2 className="mb-1">Confirmar recepción</h2>
+                <h2 className="mb-1">{accion === 'entrega' ? 'Confirmar recepción' : 'Confirmar devolución'}</h2>
                 <p className="text-sm text-gray-500">{firmando.nombre} — {[firmando.marca, firmando.modelo].filter(Boolean).join(' ')}</p>
               </div>
 
