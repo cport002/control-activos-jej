@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
-import api from '../services/api'
+import api, { fmt } from '../services/api'
 import toast from 'react-hot-toast'
-import { HardHat, CheckCircle2, Download, RotateCcw, X } from 'lucide-react'
+import { HardHat, CheckCircle2, Download, RotateCcw, X, History } from 'lucide-react'
 
 interface ActivoAsignado {
   id: number
@@ -16,6 +16,18 @@ interface ActivoAsignado {
   notas?: string | null
   acta_id: number | null
 }
+
+interface HistorialItem {
+  acta_id: number
+  tipo: 'entrega' | 'devolucion'
+  fecha: string
+  activo_id: number
+  activo_nombre: string
+  activo_marca?: string | null
+  activo_modelo?: string | null
+}
+
+const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
 
 function dataURLtoBlob(dataurl: string): Blob {
   const arr = dataurl.split(',')
@@ -31,6 +43,7 @@ export default function PerfilProfesionalPage() {
   const { token } = useParams()
   const [profesional, setProfesional] = useState<{ nombre: string; cargo?: string | null; cco?: string | null } | null>(null)
   const [activos, setActivos] = useState<ActivoAsignado[]>([])
+  const [historial, setHistorial] = useState<HistorialItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [firmando, setFirmando] = useState<ActivoAsignado | null>(null)
@@ -49,6 +62,7 @@ export default function PerfilProfesionalPage() {
       setError(err.response?.data?.error || 'No se pudo cargar la información')
       setLoading(false)
     })
+    api.get(`/public/profesional/${token}/historial`).then(r => setHistorial(r.data)).catch(() => {})
   }
   useEffect(cargar, [token])
 
@@ -183,6 +197,27 @@ export default function PerfilProfesionalPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {historial.length > 0 && (
+          <div className="card p-0 overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+              <History className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-sm">Historial</h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {historial.map(h => (
+                <button key={h.acta_id} onClick={() => descargarPDF(h.acta_id)}
+                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-indigo-50/40 transition-colors text-left">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{h.activo_nombre} — {[h.activo_marca, h.activo_modelo].filter(Boolean).join(' ')}</p>
+                    <p className="text-xs text-gray-400">{fmt.fecha(h.fecha)}</p>
+                  </div>
+                  <span className={`${h.tipo === 'entrega' ? 'badge-blue' : 'badge-green'} flex-shrink-0`}>{tipoLabel[h.tipo]}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

@@ -236,6 +236,12 @@ export default function ActivoDetallePage() {
           <p className="text-xs text-gray-400 mb-1">Asignado a</p>
           <p className="text-sm font-medium text-gray-900">{activo.profesional_nombre || '-'}</p>
         </div>
+        {activo.rotulo_codelco && (
+          <div className="card p-4">
+            <p className="text-xs text-gray-400 mb-1">Rótulo Codelco</p>
+            <p className="text-sm font-medium text-gray-900">{activo.rotulo_codelco}</p>
+          </div>
+        )}
       </div>
 
       {activo.accesorios && (

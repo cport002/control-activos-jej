@@ -55,6 +55,10 @@ async function initDatabase() {
     `);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_activo_movimientos_activo ON activo_movimientos(activo_id);`);
 
+    // Migracion: Numero ODS del profesional + Rotulo Codelco del activo
+    await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS numero_ods TEXT;`);
+    await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS rotulo_codelco TEXT;`);
+
     console.log('Base de datos PostgreSQL lista');
   } finally {
     client.release();

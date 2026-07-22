@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import api from '../services/api'
 import type { Activo, Profesional } from '../types'
 import { TIPOS_ACTIVO } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { Plus, Search, Boxes, ChevronRight } from 'lucide-react'
+import { Plus, Search, Boxes, ChevronRight, FileDown } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
@@ -37,6 +38,26 @@ export default function ActivosPage() {
 
   const abrirNuevo = () => { setForm(FORM_INICIAL); setShowForm(true) }
 
+  const exportarExcel = () => {
+    const filas = activos.map(a => ({
+      Nombre: a.nombre,
+      Tipo: a.tipo,
+      Marca: a.marca || '',
+      Modelo: a.modelo || '',
+      'N° Serie': a.numero_serie || '',
+      'Rótulo Codelco': a.rotulo_codelco || '',
+      'Asignado a': a.profesional_nombre || '',
+      Estado: estadoLabel[a.estado],
+      Ubicación: a.ubicacion === 'santiago' ? 'Santiago' : 'Salvador',
+      Accesorios: a.accesorios || '',
+      Notas: a.notas || '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(filas)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Activos')
+    XLSX.writeFile(wb, `Activos JEJ - ${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -57,11 +78,18 @@ export default function ActivosPage() {
         title="Activos"
         subtitle={`${activos.length} activo${activos.length !== 1 ? 's' : ''}`}
         icon={Boxes}
-        actions={puedeEditar ? (
-          <button onClick={abrirNuevo} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
-            <Plus className="w-4 h-4" /> Nuevo Activo
-          </button>
-        ) : undefined}
+        actions={
+          <div className="flex gap-2">
+            <button onClick={exportarExcel} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+              <FileDown className="w-4 h-4" /> Exportar Excel
+            </button>
+            {puedeEditar && (
+              <button onClick={abrirNuevo} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
+                <Plus className="w-4 h-4" /> Nuevo Activo
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="flex flex-col sm:flex-row gap-3">

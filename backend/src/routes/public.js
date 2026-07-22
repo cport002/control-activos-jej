@@ -121,6 +121,25 @@ router.post('/profesional/:token/activo/:activoId/devolver', uploadActa.fields([
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/public/profesional/:token/historial — todas las actas (entrega/devolución) del profesional, pasadas y presentes
+router.get('/profesional/:token/historial', async (req, res) => {
+  try {
+    const profesional = (await sql('SELECT id FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    if (!profesional) return res.status(404).json({ error: 'Link no válido' });
+
+    const historial = (await sql(`
+      SELECT ac.id AS acta_id, ac.tipo, ac.fecha, ac.created_at,
+        a.id AS activo_id, a.nombre AS activo_nombre, a.marca AS activo_marca, a.modelo AS activo_modelo
+      FROM actas ac
+      JOIN activos a ON a.id = ac.activo_id
+      WHERE ac.profesional_id = ?
+      ORDER BY ac.created_at DESC
+    `, [profesional.id])).rows;
+
+    res.json(historial);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/public/profesional/:token/acta/:actaId/pdf
 router.get('/profesional/:token/acta/:actaId/pdf', async (req, res) => {
   try {

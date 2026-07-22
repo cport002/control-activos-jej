@@ -22,10 +22,10 @@ const QUERY_DETALLE = `
   WHERE ac.id = ?
 `;
 
-// GET /api/actas?activo_id=&profesional_id=
+// GET /api/actas?activo_id=&profesional_id=&tipo=&busqueda=
 router.get('/', autenticar, async (req, res) => {
   try {
-    const { activo_id, profesional_id } = req.query;
+    const { activo_id, profesional_id, tipo, busqueda } = req.query;
     let query = `
       SELECT ac.*, a.nombre AS activo_nombre, p.nombre AS profesional_nombre
       FROM actas ac
@@ -36,6 +36,12 @@ router.get('/', autenticar, async (req, res) => {
     const params = [];
     if (activo_id) { query += ' AND ac.activo_id = ?'; params.push(activo_id); }
     if (profesional_id) { query += ' AND ac.profesional_id = ?'; params.push(profesional_id); }
+    if (tipo) { query += ' AND ac.tipo = ?'; params.push(tipo); }
+    if (busqueda) {
+      query += ' AND (a.nombre ILIKE ? OR p.nombre ILIKE ?)';
+      const like = `%${busqueda}%`;
+      params.push(like, like);
+    }
     query += ' ORDER BY ac.created_at DESC';
     const r = await sql(query, params);
     res.json(r.rows);

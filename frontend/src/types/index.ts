@@ -34,6 +34,7 @@ export interface Activo {
   marca?: string | null
   modelo?: string | null
   numero_serie?: string | null
+  rotulo_codelco?: string | null
   accesorios?: string | null
   estado: 'disponible' | 'asignado' | 'de_baja'
   profesional_actual_id?: number | null
