@@ -38,9 +38,22 @@ export interface Activo {
   estado: 'disponible' | 'asignado' | 'de_baja'
   profesional_actual_id?: number | null
   profesional_nombre?: string | null
+  ubicacion: 'salvador' | 'santiago'
   notas?: string | null
   created_at?: string
   updated_at?: string
+}
+
+export interface ActivoMovimiento {
+  id: number
+  activo_id: number
+  tipo: 'envio_santiago' | 'recepcion_salvador'
+  fecha: string
+  foto_url?: string | null
+  observaciones?: string | null
+  usuario_id?: number | null
+  usuario_nombre?: string | null
+  created_at: string
 }
 
 export interface Acta {

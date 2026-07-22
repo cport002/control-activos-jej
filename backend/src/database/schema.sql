@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS activos (
   accesorios TEXT,
   estado TEXT NOT NULL DEFAULT 'disponible' CHECK(estado IN ('disponible','asignado','de_baja')),
   profesional_actual_id INTEGER REFERENCES profesionales(id) ON DELETE SET NULL,
+  ubicacion TEXT NOT NULL DEFAULT 'salvador' CHECK(ubicacion IN ('salvador','santiago')),
   notas TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -59,6 +60,17 @@ CREATE TABLE IF NOT EXISTS acta_fotos (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS activo_movimientos (
+  id SERIAL PRIMARY KEY,
+  activo_id INTEGER NOT NULL REFERENCES activos(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK(tipo IN ('envio_santiago','recepcion_salvador')),
+  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+  foto_url TEXT,
+  observaciones TEXT,
+  usuario_id INTEGER REFERENCES usuarios(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS auditoria (
   id SERIAL PRIMARY KEY,
   tabla TEXT NOT NULL,
@@ -78,3 +90,4 @@ CREATE INDEX IF NOT EXISTS idx_actas_activo ON actas(activo_id);
 CREATE INDEX IF NOT EXISTS idx_actas_profesional ON actas(profesional_id);
 CREATE INDEX IF NOT EXISTS idx_acta_fotos_acta ON acta_fotos(acta_id);
 CREATE INDEX IF NOT EXISTS idx_auditoria_tabla ON auditoria(tabla, registro_id);
+CREATE INDEX IF NOT EXISTS idx_activo_movimientos_activo ON activo_movimientos(activo_id);

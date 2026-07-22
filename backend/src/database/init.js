@@ -39,6 +39,22 @@ async function initDatabase() {
     }
     if (sinToken.rows.length) console.log(`Tokens generados para ${sinToken.rows.length} profesional(es) existente(s).`);
 
+    // Migracion: ubicacion del activo (Salvador/Santiago) + historial de movimientos
+    await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS ubicacion TEXT NOT NULL DEFAULT 'salvador' CHECK(ubicacion IN ('salvador','santiago'));`);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS activo_movimientos (
+        id SERIAL PRIMARY KEY,
+        activo_id INTEGER NOT NULL REFERENCES activos(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK(tipo IN ('envio_santiago','recepcion_salvador')),
+        fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+        foto_url TEXT,
+        observaciones TEXT,
+        usuario_id INTEGER REFERENCES usuarios(id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_activo_movimientos_activo ON activo_movimientos(activo_id);`);
+
     console.log('Base de datos PostgreSQL lista');
   } finally {
     client.release();

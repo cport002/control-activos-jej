@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
-import type { Activo } from '../types'
+import type { Activo, Profesional } from '../types'
 import { TIPOS_ACTIVO } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
@@ -11,12 +11,13 @@ import PageHeader from '../components/ui/PageHeader'
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
 
-const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', notas: '' }
+const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', notas: '', profesional_id: '' }
 
 export default function ActivosPage() {
   const { puedeEditar } = useAuth()
   const [searchParams] = useSearchParams()
   const [activos, setActivos] = useState<Activo[]>([])
+  const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState(searchParams.get('estado') || '')
@@ -32,6 +33,7 @@ export default function ActivosPage() {
     api.get('/activos', { params }).then(r => { setActivos(r.data); setLoading(false) }).catch(() => setLoading(false))
   }
   useEffect(cargar, [busqueda, filtroEstado, filtroTipo])
+  useEffect(() => { api.get('/profesionales').then(r => setProfesionales(r.data)).catch(() => {}) }, [])
 
   const abrirNuevo = () => { setForm(FORM_INICIAL); setShowForm(true) }
 
@@ -89,6 +91,7 @@ export default function ActivosPage() {
               <th className="table-header">N° Serie</th>
               <th className="table-header">Asignado a</th>
               <th className="table-header text-center">Estado</th>
+              <th className="table-header text-center">Ubicación</th>
               <th className="table-header"></th>
             </tr>
           </thead>
@@ -101,6 +104,9 @@ export default function ActivosPage() {
                 <td className="table-cell text-gray-600">{a.numero_serie || '-'}</td>
                 <td className="table-cell text-gray-600">{a.profesional_nombre || '-'}</td>
                 <td className="table-cell text-center"><span className={estadoBadge[a.estado]}>{estadoLabel[a.estado]}</span></td>
+                <td className="table-cell text-center">
+                  {a.ubicacion === 'santiago' ? <span className="badge-yellow">Santiago</span> : <span className="text-gray-300 text-xs">Salvador</span>}
+                </td>
                 <td className="table-cell">
                   <Link to={`/activos/${a.id}`} className="text-gray-400 hover:text-primary-600 transition-colors">
                     <ChevronRight className="w-5 h-5" />
@@ -109,7 +115,7 @@ export default function ActivosPage() {
               </tr>
             ))}
             {activos.length === 0 && (
-              <tr><td colSpan={7} className="text-center py-12 text-gray-400">No hay activos que coincidan con el filtro</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-gray-400">No hay activos que coincidan con el filtro</td></tr>
             )}
           </tbody>
         </table>
@@ -147,6 +153,13 @@ export default function ActivosPage() {
                   <label className="label">Modelo</label>
                   <input className="input" value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} />
                 </div>
+              </div>
+              <div>
+                <label className="label">Asignar a (opcional)</label>
+                <select className="input" value={form.profesional_id} onChange={e => setForm({ ...form, profesional_id: e.target.value })}>
+                  <option value="">Dejar disponible (asignar después)</option>
+                  {profesionales.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.cargo ? ` — ${p.cargo}` : ''}</option>)}
+                </select>
               </div>
               <div>
                 <label className="label">Accesorios incluidos</label>

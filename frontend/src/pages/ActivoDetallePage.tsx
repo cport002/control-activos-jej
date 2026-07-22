@@ -2,16 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
 import api, { fmt } from '../services/api'
-import type { Activo, Acta, Profesional } from '../types'
+import type { Activo, Acta, Profesional, ActivoMovimiento } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2 } from 'lucide-react'
+import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
 const condicionLabel: Record<string, string> = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado' }
 const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
+const movTipoLabel: Record<string, string> = { envio_santiago: 'Enviado a Santiago', recepcion_salvador: 'Recibido en Salvador' }
 
 function dataURLtoBlob(dataurl: string): Blob {
   const arr = dataurl.split(',')
@@ -29,6 +30,7 @@ export default function ActivoDetallePage() {
   const { puedeEditar } = useAuth()
   const [activo, setActivo] = useState<Activo | null>(null)
   const [actas, setActas] = useState<Acta[]>([])
+  const [movimientos, setMovimientos] = useState<ActivoMovimiento[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [loading, setLoading] = useState(true)
   const [modalTipo, setModalTipo] = useState<'entrega' | 'devolucion' | null>(null)
@@ -39,13 +41,25 @@ export default function ActivoDetallePage() {
   const [guardando, setGuardando] = useState(false)
   const sigRef = useRef<SignatureCanvas | null>(null)
 
+  const [asignando, setAsignando] = useState(false)
+  const [asignarProfesionalId, setAsignarProfesionalId] = useState('')
+  const [guardandoAsignacion, setGuardandoAsignacion] = useState(false)
+
+  const [movTipo, setMovTipo] = useState<'envio_santiago' | 'recepcion_salvador' | null>(null)
+  const [movFecha, setMovFecha] = useState('')
+  const [movObservaciones, setMovObservaciones] = useState('')
+  const [movFoto, setMovFoto] = useState<File | null>(null)
+  const [guardandoMov, setGuardandoMov] = useState(false)
+
   const cargar = () => {
     Promise.all([
       api.get(`/activos/${id}`),
-      api.get(`/activos/${id}/actas`)
-    ]).then(([a, ac]) => {
+      api.get(`/activos/${id}/actas`),
+      api.get(`/activos/${id}/movimientos`)
+    ]).then(([a, ac, mv]) => {
       setActivo(a.data)
       setActas(ac.data)
+      setMovimientos(mv.data)
       setLoading(false)
     }).catch(() => { setLoading(false); toast.error('No se pudo cargar el activo') })
   }
@@ -69,6 +83,54 @@ export default function ActivoDetallePage() {
       cargar()
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Error al eliminar el acta')
+    }
+  }
+
+  const abrirAsignar = () => {
+    setAsignarProfesionalId('')
+    setAsignando(true)
+  }
+
+  const guardarAsignacion = async () => {
+    if (!asignarProfesionalId) { toast.error('Selecciona un profesional'); return }
+    setGuardandoAsignacion(true)
+    try {
+      await api.post(`/activos/${id}/asignar`, { profesional_id: asignarProfesionalId })
+      toast.success('Activo asignado')
+      setAsignando(false)
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al asignar el activo')
+    } finally {
+      setGuardandoAsignacion(false)
+    }
+  }
+
+  const abrirMovimiento = (tipo: 'envio_santiago' | 'recepcion_salvador') => {
+    setMovTipo(tipo)
+    setMovFecha(new Date().toISOString().slice(0, 10))
+    setMovObservaciones('')
+    setMovFoto(null)
+  }
+
+  const guardarMovimiento = async () => {
+    if (!movTipo) return
+    setGuardandoMov(true)
+    try {
+      const form = new FormData()
+      form.append('tipo', movTipo)
+      form.append('fecha', movFecha)
+      form.append('observaciones', movObservaciones)
+      if (movFoto) form.append('foto', movFoto)
+
+      await api.post(`/activos/${id}/movimientos`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+      toast.success(movTipo === 'envio_santiago' ? 'Envío a Santiago registrado' : 'Recepción en Salvador registrada')
+      setMovTipo(null)
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al registrar el movimiento')
+    } finally {
+      setGuardandoMov(false)
     }
   }
 
@@ -125,6 +187,11 @@ export default function ActivoDetallePage() {
               <ArrowLeft className="w-4 h-4" /> Volver
             </button>
             {puedeEditar && activo.estado === 'disponible' && (
+              <button onClick={abrirAsignar} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+                Asignar a...
+              </button>
+            )}
+            {puedeEditar && activo.estado === 'disponible' && (
               <button onClick={() => abrirModal('entrega')} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
                 Registrar entrega
               </button>
@@ -134,14 +201,28 @@ export default function ActivoDetallePage() {
                 Registrar devolución
               </button>
             )}
+            {puedeEditar && activo.estado !== 'asignado' && activo.ubicacion === 'salvador' && (
+              <button onClick={() => abrirMovimiento('envio_santiago')} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+                <Send className="w-4 h-4" /> Enviar a Santiago
+              </button>
+            )}
+            {puedeEditar && activo.ubicacion === 'santiago' && (
+              <button onClick={() => abrirMovimiento('recepcion_salvador')} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+                <PackageCheck className="w-4 h-4" /> Recibido en Salvador
+              </button>
+            )}
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
         <div className="card p-4">
           <p className="text-xs text-gray-400 mb-1">Estado</p>
           <span className={estadoBadge[activo.estado]}>{estadoLabel[activo.estado]}</span>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs text-gray-400 mb-1">Ubicación</p>
+          {activo.ubicacion === 'santiago' ? <span className="badge-yellow">Santiago</span> : <span className="badge-gray">Salvador</span>}
         </div>
         <div className="card p-4">
           <p className="text-xs text-gray-400 mb-1">Marca / Modelo</p>
@@ -233,6 +314,86 @@ export default function ActivoDetallePage() {
           </table>
         </div>
       </div>
+
+      {movimientos.length > 0 && (
+        <div className="card p-0 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100"><h3>Historial Salvador ↔ Santiago</h3></div>
+          <div className="divide-y divide-gray-100">
+            {movimientos.map(m => (
+              <div key={m.id} className="flex items-center justify-between px-6 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{movTipoLabel[m.tipo]}</p>
+                  <p className="text-xs text-gray-400">{fmt.fecha(m.fecha)}{m.usuario_nombre ? ` · ${m.usuario_nombre}` : ''}</p>
+                  {m.observaciones && <p className="text-xs text-gray-500 mt-0.5">{m.observaciones}</p>}
+                </div>
+                {m.foto_url && (
+                  <a href={m.foto_url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-primary-600">
+                    <ImageIcon className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {asignando && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2>Asignar activo</h2>
+              <button onClick={() => setAsignando(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="label">Profesional</label>
+                <select className="input" value={asignarProfesionalId} onChange={e => setAsignarProfesionalId(e.target.value)}>
+                  <option value="">Selecciona un profesional</option>
+                  {profesionales.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.cargo ? ` — ${p.cargo}` : ''}</option>)}
+                </select>
+              </div>
+              <p className="text-xs text-gray-400">Esto asigna el activo directamente, sin firma. El profesional puede firmar la recepción después desde su link personal.</p>
+            </div>
+            <div className="p-6 pt-0 flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setAsignando(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={guardarAsignacion} disabled={guardandoAsignacion}>
+                {guardandoAsignacion ? 'Guardando...' : 'Asignar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {movTipo && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2>{movTipo === 'envio_santiago' ? 'Enviar a Santiago' : 'Recibido en Salvador'}</h2>
+              <button onClick={() => setMovTipo(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="label">Fecha</label>
+                <input type="date" className="input" value={movFecha} onChange={e => setMovFecha(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Foto de evidencia (opcional)</label>
+                <input type="file" accept="image/*" className="input" onChange={e => setMovFoto(e.target.files?.[0] || null)} />
+              </div>
+              <div>
+                <label className="label">Observaciones</label>
+                <textarea className="input" rows={2} value={movObservaciones} onChange={e => setMovObservaciones(e.target.value)} />
+              </div>
+            </div>
+            <div className="p-6 pt-0 flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setMovTipo(null)}>Cancelar</button>
+              <button className="btn-primary" onClick={guardarMovimiento} disabled={guardandoMov}>
+                {guardandoMov ? 'Guardando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalTipo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
