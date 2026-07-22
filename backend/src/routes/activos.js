@@ -17,9 +17,9 @@ router.get('/', autenticar, async (req, res) => {
     `;
     const params = [];
     if (busqueda) {
-      query += ' AND (a.nombre ILIKE ? OR a.marca ILIKE ? OR a.modelo ILIKE ? OR a.numero_serie ILIKE ?)';
+      query += ' AND (a.nombre ILIKE ? OR a.marca ILIKE ? OR a.modelo ILIKE ? OR a.numero_serie ILIKE ? OR p.nombre ILIKE ?)';
       const like = `%${busqueda}%`;
-      params.push(like, like, like, like);
+      params.push(like, like, like, like, like);
     }
     if (estado) { query += ' AND a.estado = ?'; params.push(estado); }
     if (tipo) { query += ' AND a.tipo = ?'; params.push(tipo); }

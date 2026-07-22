@@ -67,7 +67,7 @@ export default function ActivosPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input className="input pl-10" placeholder="Buscar por nombre, marca, modelo o N° serie..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+          <input className="input pl-10" placeholder="Buscar por nombre, marca, modelo, N° serie o asignado a..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </div>
         <select className="input sm:w-48" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
           <option value="">Todos los tipos</option>
