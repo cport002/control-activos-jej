@@ -1,8 +1,8 @@
-// Importa el inventario real de notebooks cruzando dos Excel de JEJ:
-// - Archivo base: "Lista Activos - Control de Activos (3).xlsx" (48 notebooks)
-// - Archivo de cruce: "INVENTARIO_2026_CC 669.xlsx", hoja "Consolidado" (39 personas,
-//   con RUT/correo/detalle de equipo más preciso y fallas reportadas)
-// El cruce es por nombre completo de la persona (no hay un ID común entre ambos archivos).
+// Importa el inventario real de notebooks. Fuente de verdad de los datos técnicos:
+// "Lista Activos - Control de Activos (3).xlsx" (48 notebooks, archivo base).
+// "INVENTARIO_2026_CC 669.xlsx" (hoja "Consolidado") es solo un anexo para cruzar por
+// nombre de persona y rescatar datos que el archivo base no trae (RUT, correo, sistema
+// operativo) — nunca reemplaza los datos técnicos del archivo base.
 // Idempotente: los activos se upsertean por numero_serie, los profesionales por nombre normalizado.
 require('dotenv').config();
 const crypto = require('crypto');
@@ -91,14 +91,13 @@ async function main() {
 
     const inv = !esNoAsignado ? buscarEnInventario(limpiarNombreAsignado(asignadoRaw).nombre) : null;
     const notas = [
-      `Procesador: ${inv?.procesador || row['Procesador'] || '-'}`,
-      `Disco: ${inv?.disco || row['Disco Duro'] || '-'}`,
-      `RAM: ${inv?.ram ? inv.ram + ' GB' : (row['Memoria RAM'] || '-')}`,
+      `Procesador: ${row['Procesador'] || inv?.procesador || '-'}`,
+      `Disco: ${row['Disco Duro'] || inv?.disco || '-'}`,
+      `RAM: ${row['Memoria RAM'] || (inv?.ram ? inv.ram + ' GB' : '-')}`,
       inv?.so ? `SO: ${inv.so}` : null,
       row['Tipo Equipo'] ? `Gama: ${row['Tipo Equipo']}` : null,
       `CCO: 669`,
-      row['Orden Compra'] ? `Orden de Compra: ${row['Orden Compra']}` : null,
-      inv?.falla ? `Falla reportada: ${inv.falla}` : null
+      row['Orden Compra'] ? `Orden de Compra: ${row['Orden Compra']}` : null
     ].filter(Boolean).join(' · ');
 
     const existeActivo = (await sql('SELECT id FROM activos WHERE numero_serie = ?', [row['N° Serie']])).rows[0];
