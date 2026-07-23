@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Edit2, Link2, MessageCircle, ChevronRight, Boxes } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
-const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '' }
+const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '', tipo: 'jej', empresa: '', activo: true }
 
 export default function ProfesionalDetallePage() {
   const { id } = useParams()
@@ -35,7 +35,8 @@ export default function ProfesionalDetallePage() {
     if (!profesional) return
     setForm({
       nombre: profesional.nombre, rut: profesional.rut || '', cargo: profesional.cargo || '',
-      cco: profesional.cco || '', email: profesional.email || '', telefono: profesional.telefono || ''
+      cco: profesional.cco || '', email: profesional.email || '', telefono: profesional.telefono || '',
+      tipo: profesional.tipo || 'jej', empresa: profesional.empresa || '', activo: profesional.activo
     })
     setShowForm(true)
   }
@@ -77,7 +78,7 @@ export default function ProfesionalDetallePage() {
     <div className="space-y-6">
       <PageHeader
         title={profesional.nombre}
-        subtitle={profesional.cargo || 'Sin cargo registrado'}
+        subtitle={profesional.tipo === 'externo' ? `Externo${profesional.empresa ? ` — ${profesional.empresa}` : ''}` : (profesional.cargo || 'Sin cargo registrado')}
         icon={ArrowLeft}
         actions={
           <div className="flex gap-2">
@@ -120,6 +121,7 @@ export default function ProfesionalDetallePage() {
         <div className="card p-4">
           <p className="text-xs text-gray-400 mb-1">Estado</p>
           <span className={profesional.activo ? 'badge-green' : 'badge-gray'}>{profesional.activo ? 'activo' : 'inactivo'}</span>
+          {profesional.tipo === 'externo' && <span className="badge-yellow ml-2">Externo</span>}
         </div>
       </div>
 
@@ -179,6 +181,28 @@ export default function ProfesionalDetallePage() {
                   <input className="input" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="Ej: +56912345678" />
                 </div>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Tipo</label>
+                  <select className="input" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
+                    <option value="jej">Personal JEJ</option>
+                    <option value="externo">Externo (Codelco / otra empresa)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Estado</label>
+                  <select className="input" value={form.activo ? '1' : '0'} onChange={e => setForm({ ...form, activo: e.target.value === '1' })}>
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                  </select>
+                </div>
+              </div>
+              {form.tipo === 'externo' && (
+                <div>
+                  <label className="label">Empresa</label>
+                  <input className="input" value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} placeholder="Ej: Codelco" />
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
                 <button type="submit" className="btn-primary">Guardar cambios</button>

@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS profesionales (
   email TEXT,
   telefono TEXT,
   numero_ods TEXT,
+  tipo TEXT NOT NULL DEFAULT 'jej' CHECK(tipo IN ('jej','externo')),
+  empresa TEXT,
   token TEXT UNIQUE,
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

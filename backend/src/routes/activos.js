@@ -114,13 +114,13 @@ router.put('/:id', autenticar, autorizar('admin', 'operador'), async (req, res) 
     const anterior = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.id])).rows[0];
     if (!anterior) return res.status(404).json({ error: 'Activo no encontrado' });
 
-    const { nombre, tipo, marca, modelo, numero_serie, accesorios, estado, notas } = req.body;
+    const { nombre, tipo, marca, modelo, numero_serie, rotulo_codelco, accesorios, estado, notas } = req.body;
     await sql(
-      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, accesorios = ?, estado = ?, notas = ?, updated_at = NOW()
+      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, rotulo_codelco = ?, accesorios = ?, estado = ?, notas = ?, updated_at = NOW()
        WHERE id = ?`,
       [
         nombre ?? anterior.nombre, tipo ?? anterior.tipo, marca ?? anterior.marca, modelo ?? anterior.modelo,
-        numero_serie ?? anterior.numero_serie, accesorios ?? anterior.accesorios,
+        numero_serie ?? anterior.numero_serie, rotulo_codelco ?? anterior.rotulo_codelco, accesorios ?? anterior.accesorios,
         estado ?? anterior.estado, notas ?? anterior.notas, req.params.id
       ]
     );

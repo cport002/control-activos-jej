@@ -43,12 +43,12 @@ router.get('/:id/activos', autenticar, async (req, res) => {
 // POST /api/profesionales
 router.post('/', autenticar, autorizar('admin', 'operador'), async (req, res) => {
   try {
-    const { nombre, rut, cargo, cco, email, telefono } = req.body;
+    const { nombre, rut, cargo, cco, email, telefono, tipo, empresa } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
     const r = await sql(
-      'INSERT INTO profesionales (nombre, rut, cargo, cco, email, telefono) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
-      [nombre.trim(), rut || null, cargo || null, cco || null, email || null, telefono || null]
+      'INSERT INTO profesionales (nombre, rut, cargo, cco, email, telefono, tipo, empresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id',
+      [nombre.trim(), rut || null, cargo || null, cco || null, email || null, telefono || null, tipo === 'externo' ? 'externo' : 'jej', empresa || null]
     );
     const id = r.rows[0].id;
     registrarAuditoria('profesionales', id, 'INSERT', null, req.body, req.usuario.id, req.ip, 'Profesional registrado');
@@ -62,13 +62,16 @@ router.put('/:id', autenticar, autorizar('admin', 'operador'), async (req, res) 
     const anterior = (await sql('SELECT * FROM profesionales WHERE id = ?', [req.params.id])).rows[0];
     if (!anterior) return res.status(404).json({ error: 'Profesional no encontrado' });
 
-    const { nombre, rut, cargo, cco, email, telefono, activo } = req.body;
+    const { nombre, rut, cargo, cco, email, telefono, activo, tipo, empresa } = req.body;
     await sql(
-      `UPDATE profesionales SET nombre = ?, rut = ?, cargo = ?, cco = ?, email = ?, telefono = ?, activo = ?, updated_at = NOW() WHERE id = ?`,
+      `UPDATE profesionales SET nombre = ?, rut = ?, cargo = ?, cco = ?, email = ?, telefono = ?, activo = ?, tipo = ?, empresa = ?, updated_at = NOW() WHERE id = ?`,
       [
         nombre ?? anterior.nombre, rut ?? anterior.rut, cargo ?? anterior.cargo, cco ?? anterior.cco,
         email ?? anterior.email, telefono ?? anterior.telefono,
-        activo !== undefined ? !!activo : anterior.activo, req.params.id
+        activo !== undefined ? !!activo : anterior.activo,
+        tipo === 'externo' || tipo === 'jej' ? tipo : anterior.tipo,
+        empresa ?? anterior.empresa,
+        req.params.id
       ]
     );
     registrarAuditoria('profesionales', req.params.id, 'UPDATE', anterior, req.body, req.usuario.id, req.ip, 'Profesional actualizado');

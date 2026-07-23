@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { Plus, Search, Users, ChevronRight, Link2, MessageCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
-const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '' }
+const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '', tipo: 'jej', empresa: '' }
 
 export default function ProfesionalesPage() {
   const { puedeEditar } = useAuth()
@@ -81,6 +81,7 @@ export default function ProfesionalesPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="table-header">Nombre</th>
+              <th className="table-header">Tipo</th>
               <th className="table-header">RUT</th>
               <th className="table-header">Cargo</th>
               <th className="table-header">CCO</th>
@@ -92,6 +93,7 @@ export default function ProfesionalesPage() {
             {profesionales.map(p => (
               <tr key={p.id} className="table-row">
                 <td className="table-cell font-medium">{p.nombre}</td>
+                <td className="table-cell">{p.tipo === 'externo' ? <span className="badge-yellow">Externo{p.empresa ? ` · ${p.empresa}` : ''}</span> : <span className="text-gray-400 text-xs">JEJ</span>}</td>
                 <td className="table-cell text-gray-600">{p.rut || '-'}</td>
                 <td className="table-cell text-gray-600">{p.cargo || '-'}</td>
                 <td className="table-cell text-gray-600">{p.cco || '-'}</td>
@@ -116,7 +118,7 @@ export default function ProfesionalesPage() {
               </tr>
             ))}
             {profesionales.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400">No hay profesionales que coincidan con el filtro</td></tr>
+              <tr><td colSpan={7} className="text-center py-12 text-gray-400">No hay profesionales que coincidan con el filtro</td></tr>
             )}
           </tbody>
         </table>
@@ -142,6 +144,21 @@ export default function ProfesionalesPage() {
                   <label className="label">Cargo</label>
                   <input className="input" value={form.cargo} onChange={e => setForm({ ...form, cargo: e.target.value })} />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Tipo</label>
+                  <select className="input" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
+                    <option value="jej">Personal JEJ</option>
+                    <option value="externo">Externo (Codelco / otra empresa)</option>
+                  </select>
+                </div>
+                {form.tipo === 'externo' && (
+                  <div>
+                    <label className="label">Empresa</label>
+                    <input className="input" value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} placeholder="Ej: Codelco" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="label">CCO</label>

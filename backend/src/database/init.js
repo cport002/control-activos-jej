@@ -60,6 +60,10 @@ async function initDatabase() {
     await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS rotulo_codelco TEXT;`);
     await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS foto_url TEXT;`);
 
+    // Migracion: profesionales externos (personal Codelco u otra empresa con equipos JEJ en préstamo)
+    await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'jej' CHECK(tipo IN ('jej','externo'));`);
+    await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS empresa TEXT;`);
+
     console.log('Base de datos PostgreSQL lista');
   } finally {
     client.release();

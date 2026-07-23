@@ -21,6 +21,9 @@ export interface Profesional {
   cco?: string | null
   email?: string | null
   telefono?: string | null
+  numero_ods?: string | null
+  tipo?: 'jej' | 'externo'
+  empresa?: string | null
   token?: string | null
   activo: boolean
   created_at?: string

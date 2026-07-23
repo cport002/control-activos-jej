@@ -5,8 +5,9 @@ import api, { fmt } from '../services/api'
 import type { Activo, Acta, Profesional, ActivoMovimiento } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck } from 'lucide-react'
+import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck, Edit2, Archive } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
+import { TIPOS_ACTIVO } from '../types'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
@@ -50,6 +51,12 @@ export default function ActivoDetallePage() {
   const [movObservaciones, setMovObservaciones] = useState('')
   const [movFoto, setMovFoto] = useState<File | null>(null)
   const [guardandoMov, setGuardandoMov] = useState(false)
+
+  const EDITAR_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', rotulo_codelco: '', accesorios: '', notas: '' }
+  const [editando, setEditando] = useState(false)
+  const [formEditar, setFormEditar] = useState(EDITAR_INICIAL)
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+  const [dandoBaja, setDandoBaja] = useState(false)
 
   const cargar = () => {
     Promise.all([
@@ -134,6 +141,56 @@ export default function ActivoDetallePage() {
     }
   }
 
+  const abrirEditar = () => {
+    if (!activo) return
+    setFormEditar({
+      nombre: activo.nombre, tipo: activo.tipo, marca: activo.marca || '', modelo: activo.modelo || '',
+      numero_serie: activo.numero_serie || '', rotulo_codelco: activo.rotulo_codelco || '',
+      accesorios: activo.accesorios || '', notas: activo.notas || ''
+    })
+    setEditando(true)
+  }
+
+  const guardarEdicion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGuardandoEdicion(true)
+    try {
+      await api.put(`/activos/${id}`, formEditar)
+      toast.success('Activo actualizado')
+      setEditando(false)
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al guardar')
+    } finally {
+      setGuardandoEdicion(false)
+    }
+  }
+
+  const darDeBaja = async () => {
+    if (!activo) return
+    if (!confirm(`¿Dar de baja "${activo.nombre}"? Pasará a estado "de baja" y no podrá asignarse hasta reactivarlo.`)) return
+    setDandoBaja(true)
+    try {
+      await api.delete(`/activos/${id}`)
+      toast.success('Activo dado de baja')
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al dar de baja')
+    } finally {
+      setDandoBaja(false)
+    }
+  }
+
+  const reactivar = async () => {
+    try {
+      await api.put(`/activos/${id}`, { estado: 'disponible' })
+      toast.success('Activo reactivado (disponible)')
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al reactivar')
+    }
+  }
+
   const descargarPDF = async (actaId: number) => {
     try {
       const r = await api.get(`/actas/${actaId}/pdf`, { responseType: 'blob' })
@@ -209,6 +266,21 @@ export default function ActivoDetallePage() {
             {puedeEditar && activo.ubicacion === 'santiago' && (
               <button onClick={() => abrirMovimiento('recepcion_salvador')} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
                 <PackageCheck className="w-4 h-4" /> Recibido en Salvador
+              </button>
+            )}
+            {puedeEditar && (
+              <button onClick={abrirEditar} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+                <Edit2 className="w-4 h-4" /> Editar
+              </button>
+            )}
+            {puedeEditar && activo.estado === 'de_baja' && (
+              <button onClick={reactivar} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+                Reactivar
+              </button>
+            )}
+            {puedeEditar && activo.estado === 'disponible' && (
+              <button onClick={darDeBaja} disabled={dandoBaja} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-red-500/30 transition-colors">
+                <Archive className="w-4 h-4" /> Dar de baja
               </button>
             )}
           </div>
@@ -406,6 +478,61 @@ export default function ActivoDetallePage() {
                 {guardandoMov ? 'Guardando...' : 'Confirmar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editando && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2>Editar activo</h2>
+              <button onClick={() => setEditando(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={guardarEdicion} className="p-6 space-y-4">
+              <div>
+                <label className="label">Nombre *</label>
+                <input className="input" value={formEditar.nombre} onChange={e => setFormEditar({ ...formEditar, nombre: e.target.value })} required />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Tipo</label>
+                  <select className="input" value={formEditar.tipo} onChange={e => setFormEditar({ ...formEditar, tipo: e.target.value })}>
+                    {TIPOS_ACTIVO.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">N° de Serie</label>
+                  <input className="input" value={formEditar.numero_serie} onChange={e => setFormEditar({ ...formEditar, numero_serie: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Marca</label>
+                  <input className="input" value={formEditar.marca} onChange={e => setFormEditar({ ...formEditar, marca: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Modelo</label>
+                  <input className="input" value={formEditar.modelo} onChange={e => setFormEditar({ ...formEditar, modelo: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="label">Rótulo Codelco</label>
+                <input className="input" value={formEditar.rotulo_codelco} onChange={e => setFormEditar({ ...formEditar, rotulo_codelco: e.target.value })} placeholder="Ej: ZEX000263296" />
+              </div>
+              <div>
+                <label className="label">Accesorios incluidos</label>
+                <input className="input" value={formEditar.accesorios} onChange={e => setFormEditar({ ...formEditar, accesorios: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Notas / Detalle técnico</label>
+                <textarea className="input" rows={3} value={formEditar.notas} onChange={e => setFormEditar({ ...formEditar, notas: e.target.value })} />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" className="btn-secondary" onClick={() => setEditando(false)}>Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={guardandoEdicion}>{guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

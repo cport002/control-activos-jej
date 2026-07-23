@@ -6,7 +6,7 @@ import type { Activo, Profesional } from '../types'
 import { TIPOS_ACTIVO } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { Plus, Search, Boxes, ChevronRight, FileDown } from 'lucide-react'
+import { Plus, Search, Boxes, ChevronRight, FileDown, Camera } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
@@ -126,7 +126,12 @@ export default function ActivosPage() {
           <tbody>
             {activos.map(a => (
               <tr key={a.id} className="table-row">
-                <td className="table-cell font-medium">{a.nombre}</td>
+                <td className="table-cell font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    {a.nombre}
+                    {a.foto_url && <Camera className="w-3.5 h-3.5 text-gray-300" />}
+                  </span>
+                </td>
                 <td className="table-cell text-gray-600">{a.tipo}</td>
                 <td className="table-cell text-gray-600">{[a.marca, a.modelo].filter(Boolean).join(' / ') || '-'}</td>
                 <td className="table-cell text-gray-600">{a.numero_serie || '-'}</td>
