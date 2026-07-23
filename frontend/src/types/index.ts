@@ -35,6 +35,7 @@ export interface Activo {
   modelo?: string | null
   numero_serie?: string | null
   rotulo_codelco?: string | null
+  foto_url?: string | null
   accesorios?: string | null
   estado: 'disponible' | 'asignado' | 'de_baja'
   profesional_actual_id?: number | null
@@ -74,4 +75,4 @@ export interface Acta {
   fotos?: string[]
 }
 
-export const TIPOS_ACTIVO = ['Notebook', 'Radio', 'Impresora', 'Celular', 'Otro']
+export const TIPOS_ACTIVO = ['Notebook', 'Monitor', 'Radio', 'Impresora', 'Celular', 'Otro']

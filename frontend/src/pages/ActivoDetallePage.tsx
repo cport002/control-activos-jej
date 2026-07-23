@@ -244,6 +244,15 @@ export default function ActivoDetallePage() {
         )}
       </div>
 
+      {activo.foto_url && (
+        <div className="card p-4">
+          <p className="text-xs text-gray-400 mb-2">Foto del equipo</p>
+          <a href={activo.foto_url} target="_blank" rel="noreferrer">
+            <img src={activo.foto_url} alt={activo.nombre} className="max-h-64 rounded-lg border border-gray-100" />
+          </a>
+        </div>
+      )}
+
       {activo.accesorios && (
         <div className="card p-4">
           <p className="text-xs text-gray-400 mb-1">Accesorios incluidos</p>

@@ -58,6 +58,7 @@ async function initDatabase() {
     // Migracion: Numero ODS del profesional + Rotulo Codelco del activo
     await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS numero_ods TEXT;`);
     await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS rotulo_codelco TEXT;`);
+    await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS foto_url TEXT;`);
 
     console.log('Base de datos PostgreSQL lista');
   } finally {

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS activos (
   modelo TEXT,
   numero_serie TEXT UNIQUE,
   rotulo_codelco TEXT,
+  foto_url TEXT,
   accesorios TEXT,
   estado TEXT NOT NULL DEFAULT 'disponible' CHECK(estado IN ('disponible','asignado','de_baja')),
   profesional_actual_id INTEGER REFERENCES profesionales(id) ON DELETE SET NULL,
