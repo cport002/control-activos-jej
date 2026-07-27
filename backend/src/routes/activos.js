@@ -2,6 +2,8 @@ const express = require('express');
 const { sql } = require('../database/db');
 const { autenticar, autorizar, registrarAuditoria } = require('../middleware/auth');
 const { uploadActa } = require('../services/upload');
+const { condicionBusqueda } = require('../utils/busqueda');
+const { nombreActualizado } = require('../utils/renombrarActivo');
 
 const router = express.Router();
 
@@ -17,9 +19,9 @@ router.get('/', autenticar, async (req, res) => {
     `;
     const params = [];
     if (busqueda) {
-      query += ' AND (a.nombre ILIKE ? OR a.marca ILIKE ? OR a.modelo ILIKE ? OR a.numero_serie ILIKE ? OR p.nombre ILIKE ?)';
-      const like = `%${busqueda}%`;
-      params.push(like, like, like, like, like);
+      const { clause, params: p } = condicionBusqueda(busqueda, ['a.nombre', 'a.marca', 'a.modelo', 'a.numero_serie', 'p.nombre']);
+      query += clause;
+      params.push(...p);
     }
     if (estado) { query += ' AND a.estado = ?'; params.push(estado); }
     if (tipo) { query += ' AND a.tipo = ?'; params.push(tipo); }
@@ -99,11 +101,14 @@ router.post('/:id/asignar', autenticar, autorizar('admin', 'operador'), async (r
     if (!activo) return res.status(404).json({ error: 'Activo no encontrado' });
     if (activo.estado !== 'disponible') return res.status(400).json({ error: 'El activo no está disponible para asignar' });
 
-    const prof = await sql('SELECT id FROM profesionales WHERE id = ?', [profesional_id]);
+    const prof = await sql('SELECT id, nombre FROM profesionales WHERE id = ?', [profesional_id]);
     if (!prof.rows.length) return res.status(400).json({ error: 'Profesional no encontrado' });
 
-    await sql("UPDATE activos SET estado = 'asignado', profesional_actual_id = ?, updated_at = NOW() WHERE id = ?", [profesional_id, req.params.id]);
-    registrarAuditoria('activos', req.params.id, 'UPDATE', activo, { profesional_actual_id: profesional_id, estado: 'asignado' }, req.usuario.id, req.ip, 'Activo asignado directamente (sin firma todavía)');
+    const todos = (await sql('SELECT id, nombre FROM profesionales')).rows;
+    const nuevoNombre = nombreActualizado(activo.nombre, prof.rows[0].nombre, todos);
+
+    await sql("UPDATE activos SET estado = 'asignado', profesional_actual_id = ?, nombre = ?, updated_at = NOW() WHERE id = ?", [profesional_id, nuevoNombre, req.params.id]);
+    registrarAuditoria('activos', req.params.id, 'UPDATE', activo, { profesional_actual_id: profesional_id, estado: 'asignado', nombre: nuevoNombre }, req.usuario.id, req.ip, 'Activo asignado directamente (sin firma todavía)');
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

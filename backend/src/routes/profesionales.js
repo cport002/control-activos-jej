@@ -1,6 +1,7 @@
 const express = require('express');
 const { sql } = require('../database/db');
 const { autenticar, autorizar, registrarAuditoria } = require('../middleware/auth');
+const { condicionBusqueda } = require('../utils/busqueda');
 
 const router = express.Router();
 
@@ -11,9 +12,9 @@ router.get('/', autenticar, async (req, res) => {
     let query = 'SELECT * FROM profesionales WHERE 1=1';
     const params = [];
     if (busqueda) {
-      query += ' AND (nombre ILIKE ? OR rut ILIKE ? OR cargo ILIKE ?)';
-      const like = `%${busqueda}%`;
-      params.push(like, like, like);
+      const { clause, params: p } = condicionBusqueda(busqueda, ['nombre', 'rut', 'cargo']);
+      query += clause;
+      params.push(...p);
     }
     if (estado === 'activo') query += ' AND activo = true';
     if (estado === 'inactivo') query += ' AND activo = false';

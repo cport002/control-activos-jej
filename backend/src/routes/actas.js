@@ -3,6 +3,8 @@ const { sql, withTransaction } = require('../database/db');
 const { autenticar, autorizar, registrarAuditoria } = require('../middleware/auth');
 const { uploadActa } = require('../services/upload');
 const { generarActaPDF } = require('../services/actaPdf');
+const { condicionBusqueda } = require('../utils/busqueda');
+const { nombreActualizado } = require('../utils/renombrarActivo');
 
 const router = express.Router();
 
@@ -38,9 +40,9 @@ router.get('/', autenticar, async (req, res) => {
     if (profesional_id) { query += ' AND ac.profesional_id = ?'; params.push(profesional_id); }
     if (tipo) { query += ' AND ac.tipo = ?'; params.push(tipo); }
     if (busqueda) {
-      query += ' AND (a.nombre ILIKE ? OR p.nombre ILIKE ?)';
-      const like = `%${busqueda}%`;
-      params.push(like, like);
+      const { clause, params: p } = condicionBusqueda(busqueda, ['a.nombre', 'p.nombre']);
+      query += clause;
+      params.push(...p);
     }
     query += ' ORDER BY ac.created_at DESC';
     const r = await sql(query, params);
@@ -109,7 +111,10 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
       }
 
       if (tipo === 'entrega') {
-        await tsql("UPDATE activos SET estado = 'asignado', profesional_actual_id = ?, updated_at = NOW() WHERE id = ?", [profesional_id, activo_id]);
+        const prof = await tsql('SELECT nombre FROM profesionales WHERE id = ?', [profesional_id]);
+        const todos = (await tsql('SELECT id, nombre FROM profesionales')).rows;
+        const nuevoNombre = nombreActualizado(activo.nombre, prof.rows[0]?.nombre, todos);
+        await tsql("UPDATE activos SET estado = 'asignado', profesional_actual_id = ?, nombre = ?, updated_at = NOW() WHERE id = ?", [profesional_id, nuevoNombre, activo_id]);
       } else {
         await tsql("UPDATE activos SET estado = 'disponible', profesional_actual_id = NULL, updated_at = NOW() WHERE id = ?", [activo_id]);
       }
