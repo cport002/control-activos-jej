@@ -64,6 +64,10 @@ async function initDatabase() {
     await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'jej' CHECK(tipo IN ('jej','externo'));`);
     await client.query(`ALTER TABLE profesionales ADD COLUMN IF NOT EXISTS empresa TEXT;`);
 
+    // Migracion: condiciones "extraviado"/"robado" en actas de devolución (equipo perdido o robado)
+    await client.query(`ALTER TABLE actas DROP CONSTRAINT IF EXISTS actas_condicion_equipo_check;`);
+    await client.query(`ALTER TABLE actas ADD CONSTRAINT actas_condicion_equipo_check CHECK(condicion_equipo IN ('bueno','con_observaciones','dañado','extraviado','robado'));`);
+
     console.log('Base de datos PostgreSQL lista');
   } finally {
     client.release();

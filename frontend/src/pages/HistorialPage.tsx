@@ -7,7 +7,7 @@ import { Search, History, Download } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
-const condicionLabel: Record<string, string> = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado' }
+const condicionLabel: Record<string, string> = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado', extraviado: 'Extraviado', robado: 'Robado' }
 
 export default function HistorialPage() {
   const [actas, setActas] = useState<Acta[]>([])

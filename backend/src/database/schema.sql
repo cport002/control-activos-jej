@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS actas (
   profesional_id INTEGER NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
   tipo TEXT NOT NULL CHECK(tipo IN ('entrega','devolucion')),
   fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-  condicion_equipo TEXT NOT NULL DEFAULT 'bueno' CHECK(condicion_equipo IN ('bueno','con_observaciones','dañado')),
+  condicion_equipo TEXT NOT NULL DEFAULT 'bueno' CHECK(condicion_equipo IN ('bueno','con_observaciones','dañado','extraviado','robado')),
   observaciones TEXT,
   firma_url TEXT NOT NULL,
   usuario_id INTEGER REFERENCES usuarios(id),

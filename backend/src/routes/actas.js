@@ -117,7 +117,9 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
         const nuevoNombre = nombreActualizado(activo.nombre, prof.rows[0]?.nombre, todos);
         await tsql("UPDATE activos SET estado = 'asignado', profesional_actual_id = ?, nombre = ?, updated_at = NOW() WHERE id = ?", [profesional_id, nuevoNombre, activo_id]);
       } else {
-        await tsql("UPDATE activos SET estado = 'disponible', profesional_actual_id = NULL, updated_at = NOW() WHERE id = ?", [activo_id]);
+        // Si el equipo se extravió o lo robaron, no vuelve a quedar disponible para reasignar: se da de baja directo.
+        const estadoFinal = ['extraviado', 'robado'].includes(condicion_equipo) ? 'de_baja' : 'disponible';
+        await tsql("UPDATE activos SET estado = ?, profesional_actual_id = NULL, updated_at = NOW() WHERE id = ?", [estadoFinal, activo_id]);
       }
 
       return actaId;

@@ -12,7 +12,7 @@ import { parseNotas, composeNotas, type DetalleTecnico } from '../utils/notas'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
-const condicionLabel: Record<string, string> = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado' }
+const condicionLabel: Record<string, string> = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado', extraviado: 'Extraviado', robado: 'Robado' }
 const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
 const movTipoLabel: Record<string, string> = { envio_santiago: 'Enviado a Santiago', recepcion_salvador: 'Recibido en Salvador' }
 
@@ -651,16 +651,24 @@ export default function ActivoDetallePage() {
                   <option value="bueno">Bueno</option>
                   <option value="con_observaciones">Con observaciones</option>
                   <option value="dañado">Dañado</option>
+                  {modalTipo === 'devolucion' && <option value="extraviado">Extraviado</option>}
+                  {modalTipo === 'devolucion' && <option value="robado">Robado</option>}
                 </select>
+                {(condicion === 'extraviado' || condicion === 'robado') && (
+                  <p className="text-xs text-amber-600 mt-1.5">
+                    El equipo pasará directo a "de baja" (no vuelve a quedar disponible). {condicion === 'robado' ? 'Adjunta el parte policial' : 'Detalla lo ocurrido'} en observaciones y como evidencia fotográfica.
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="label">Observaciones</label>
-                <textarea className="input" rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)} />
+                <textarea className="input" rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)}
+                  placeholder={condicion === 'robado' ? 'N° de parte policial, comisaría, fecha del hecho...' : condicion === 'extraviado' ? 'Circunstancias del extravío, fecha, lugar...' : ''} />
               </div>
 
               <div>
-                <label className="label">Evidencia fotográfica (opcional, máx. 5)</label>
+                <label className="label">Evidencia fotográfica (opcional, máx. 5){(condicion === 'extraviado' || condicion === 'robado') && ' — incluye foto/escaneo del parte policial si tienes'}</label>
                 <input type="file" accept="image/*" multiple className="input"
                   onChange={e => setFotos(Array.from(e.target.files || []).slice(0, 5))} />
               </div>

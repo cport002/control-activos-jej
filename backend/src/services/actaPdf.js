@@ -9,7 +9,7 @@ const GRAY_900 = '#1f2937';
 const GRAY_600 = '#4b5563';
 const GRAY_400 = '#9ca3af';
 
-const CONDICION_LABEL = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado' };
+const CONDICION_LABEL = { bueno: 'Bueno', con_observaciones: 'Con observaciones', 'dañado': 'Dañado', extraviado: 'Extraviado', robado: 'Robado' };
 const TIPO_LABEL = { entrega: 'Acta de Entrega', devolucion: 'Acta de Devolución' };
 
 async function descargarImagen(url) {
