@@ -4,6 +4,7 @@ const { autenticar, autorizar, registrarAuditoria } = require('../middleware/aut
 const { uploadActa } = require('../services/upload');
 const { condicionBusqueda } = require('../utils/busqueda');
 const { nombreActualizado } = require('../utils/renombrarActivo');
+const { SELLO_HISTORICO_URL } = require('../constants');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ router.get('/:id/actas', autenticar, async (req, res) => {
   try {
     const r = await sql(`
       SELECT ac.*, p.nombre AS profesional_nombre,
+        (ac.firma_url = ?) AS es_historico,
         COALESCE(json_agg(af.foto_url) FILTER (WHERE af.foto_url IS NOT NULL), '[]') AS fotos
       FROM actas ac
       JOIN profesionales p ON p.id = ac.profesional_id
@@ -56,7 +58,7 @@ router.get('/:id/actas', autenticar, async (req, res) => {
       WHERE ac.activo_id = ?
       GROUP BY ac.id, p.nombre
       ORDER BY ac.created_at DESC
-    `, [req.params.id]);
+    `, [SELLO_HISTORICO_URL, req.params.id]);
     res.json(r.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

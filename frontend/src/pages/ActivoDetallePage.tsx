@@ -5,7 +5,7 @@ import api, { fmt } from '../services/api'
 import type { Activo, Acta, Profesional, ActivoMovimiento } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck, Edit2, Archive } from 'lucide-react'
+import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck, Edit2, Archive, FileSignature } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import { TIPOS_ACTIVO } from '../types'
 import { parseNotas, composeNotas, type DetalleTecnico } from '../utils/notas'
@@ -61,6 +61,11 @@ export default function ActivoDetallePage() {
   const [fotoEditar, setFotoEditar] = useState<File | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [dandoBaja, setDandoBaja] = useState(false)
+
+  const [firmarHistoricaId, setFirmarHistoricaId] = useState<number | null>(null)
+  const [fotosFirmaHistorica, setFotosFirmaHistorica] = useState<File[]>([])
+  const [guardandoFirmaHistorica, setGuardandoFirmaHistorica] = useState(false)
+  const sigRefHistorico = useRef<SignatureCanvas | null>(null)
 
   const cargar = () => {
     Promise.all([
@@ -239,8 +244,40 @@ export default function ActivoDetallePage() {
     }
   }
 
+  const abrirFirmarHistorica = (actaId: number) => {
+    setFotosFirmaHistorica([])
+    setFirmarHistoricaId(actaId)
+    setTimeout(() => sigRefHistorico.current?.clear(), 0)
+  }
+
+  const guardarFirmaHistorica = async () => {
+    if (!firmarHistoricaId) return
+    if (!sigRefHistorico.current || sigRefHistorico.current.isEmpty()) { toast.error('Falta la firma'); return }
+
+    setGuardandoFirmaHistorica(true)
+    try {
+      const form = new FormData()
+      const firmaBlob = dataURLtoBlob(sigRefHistorico.current.getTrimmedCanvas().toDataURL('image/png'))
+      form.append('firma', firmaBlob, 'firma.png')
+      fotosFirmaHistorica.forEach(f => form.append('fotos', f))
+
+      await api.put(`/actas/${firmarHistoricaId}/firmar`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+      toast.success('Firma registrada, reemplazó el sello histórico')
+      setFirmarHistoricaId(null)
+      cargar()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al guardar la firma')
+    } finally {
+      setGuardandoFirmaHistorica(false)
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-500">Cargando...</div>
   if (!activo) return <div className="text-center py-12 text-gray-400">Activo no encontrado</div>
+
+  const actaHistoricaPendiente = activo.estado === 'asignado'
+    ? actas.find(a => a.tipo === 'entrega' && a.es_historico && a.profesional_id === activo.profesional_actual_id)
+    : undefined
 
   return (
     <div className="space-y-6">
@@ -266,6 +303,11 @@ export default function ActivoDetallePage() {
             {puedeEditar && activo.estado === 'asignado' && (
               <button onClick={() => abrirModal('devolucion')} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
                 Registrar devolución
+              </button>
+            )}
+            {puedeEditar && actaHistoricaPendiente && (
+              <button onClick={() => abrirFirmarHistorica(actaHistoricaPendiente.id)} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
+                <FileSignature className="w-4 h-4" /> Firmar recepción pendiente
               </button>
             )}
             {puedeEditar && activo.estado !== 'asignado' && activo.ubicacion === 'salvador' && (
@@ -380,7 +422,10 @@ export default function ActivoDetallePage() {
               {actas.map(a => (
                 <tr key={a.id} className="table-row">
                   <td className="table-cell text-gray-500">{fmt.fecha(a.fecha)}</td>
-                  <td className="table-cell"><span className={a.tipo === 'entrega' ? 'badge-blue' : 'badge-green'}>{tipoLabel[a.tipo]}</span></td>
+                  <td className="table-cell">
+                    <span className={a.tipo === 'entrega' ? 'badge-blue' : 'badge-green'}>{tipoLabel[a.tipo]}</span>
+                    {a.es_historico && <span className="badge-gray ml-1.5 text-[10px]">sin firma real</span>}
+                  </td>
                   <td className="table-cell font-medium">
                     <Link to="/profesionales" className="hover:text-primary-600">{a.profesional_nombre}</Link>
                   </td>
@@ -636,6 +681,45 @@ export default function ActivoDetallePage() {
               <button className="btn-secondary" onClick={() => setModalTipo(null)}>Cancelar</button>
               <button className="btn-primary" onClick={guardarActa} disabled={guardando}>
                 {guardando ? 'Guardando...' : 'Guardar y generar PDF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {firmarHistoricaId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2>Firmar recepción pendiente</h2>
+              <button onClick={() => setFirmarHistoricaId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Este equipo quedó registrado con un sello de "registro histórico" (sin firma real) al cargarlo al inicio del contrato.
+                Si tienes a <strong>{activo.profesional_nombre}</strong> contigo ahora, captura su firma real aquí — reemplazará el sello en esta misma acta.
+              </p>
+              <div>
+                <label className="label">Evidencia fotográfica (opcional, máx. 5)</label>
+                <input type="file" accept="image/*" multiple className="input"
+                  onChange={e => setFotosFirmaHistorica(Array.from(e.target.files || []).slice(0, 5))} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label mb-0">Firma</label>
+                  <button type="button" onClick={() => sigRefHistorico.current?.clear()} className="text-xs text-gray-400 hover:text-primary-600 inline-flex items-center gap-1">
+                    <RotateCcw className="w-3 h-3" /> Limpiar
+                  </button>
+                </div>
+                <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                  <SignatureCanvas ref={sigRefHistorico} penColor="black" canvasProps={{ width: 448, height: 160, className: 'w-full' }} />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 pt-0 flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setFirmarHistoricaId(null)}>Cancelar</button>
+              <button className="btn-primary" onClick={guardarFirmaHistorica} disabled={guardandoFirmaHistorica}>
+                {guardandoFirmaHistorica ? 'Guardando...' : 'Guardar firma'}
               </button>
             </div>
           </div>

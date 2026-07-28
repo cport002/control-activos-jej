@@ -5,6 +5,7 @@ const { uploadActa } = require('../services/upload');
 const { generarActaPDF } = require('../services/actaPdf');
 const { condicionBusqueda } = require('../utils/busqueda');
 const { nombreActualizado } = require('../utils/renombrarActivo');
+const { SELLO_HISTORICO_URL } = require('../constants');
 
 const router = express.Router();
 
@@ -124,6 +125,35 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
 
     registrarAuditoria('actas', acta, 'INSERT', null, { activo_id, profesional_id, tipo }, req.usuario.id, req.ip, `Acta de ${tipo} registrada`);
     res.status(201).json({ id: acta, ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/actas/:id/firmar — reemplaza el sello de "registro histórico" por una firma real,
+// capturada en pantalla por un admin/operador junto al profesional. Solo funciona sobre actas
+// que hoy tienen el sello (nunca sobre una firma real ya existente, para no pisarla por error).
+router.put('/:id/firmar', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
+  { name: 'firma', maxCount: 1 },
+  { name: 'fotos', maxCount: 5 }
+]), async (req, res) => {
+  try {
+    const acta = (await sql('SELECT * FROM actas WHERE id = ?', [req.params.id])).rows[0];
+    if (!acta) return res.status(404).json({ error: 'Acta no encontrada' });
+    if (acta.firma_url !== SELLO_HISTORICO_URL) {
+      return res.status(400).json({ error: 'Esta acta ya tiene una firma real registrada' });
+    }
+
+    const firmaFile = req.files?.firma?.[0];
+    if (!firmaFile) return res.status(400).json({ error: 'La firma es requerida' });
+
+    await sql('UPDATE actas SET firma_url = ? WHERE id = ?', [firmaFile.path, req.params.id]);
+
+    const fotos = req.files?.fotos || [];
+    for (const foto of fotos) {
+      await sql('INSERT INTO acta_fotos (acta_id, foto_url) VALUES (?, ?)', [req.params.id, foto.path]);
+    }
+
+    registrarAuditoria('actas', req.params.id, 'UPDATE', { firma_url: acta.firma_url }, { firma_url: firmaFile.path }, req.usuario.id, req.ip, 'Firma real capturada, reemplaza el sello de registro histórico');
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

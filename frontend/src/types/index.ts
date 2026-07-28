@@ -76,6 +76,7 @@ export interface Acta {
   activo_nombre?: string
   profesional_nombre?: string
   fotos?: string[]
+  es_historico?: boolean
 }
 
 export const TIPOS_ACTIVO = ['Notebook', 'Monitor', 'Radio', 'Impresora', 'Celular', 'Otro']
