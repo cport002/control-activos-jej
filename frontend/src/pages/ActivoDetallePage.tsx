@@ -40,6 +40,7 @@ export default function ActivoDetallePage() {
   const [condicion, setCondicion] = useState('bueno')
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<File[]>([])
+  const [esHistorico, setEsHistorico] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const sigRef = useRef<SignatureCanvas | null>(null)
 
@@ -88,6 +89,7 @@ export default function ActivoDetallePage() {
     setCondicion('bueno')
     setObservaciones('')
     setFotos([])
+    setEsHistorico(false)
     setTimeout(() => sigRef.current?.clear(), 0)
   }
 
@@ -219,7 +221,7 @@ export default function ActivoDetallePage() {
   const guardarActa = async () => {
     if (!modalTipo || !activo) return
     if (!profesionalId) { toast.error('Selecciona un profesional'); return }
-    if (!sigRef.current || sigRef.current.isEmpty()) { toast.error('Falta la firma'); return }
+    if (!esHistorico && (!sigRef.current || sigRef.current.isEmpty())) { toast.error('Falta la firma'); return }
 
     setGuardando(true)
     try {
@@ -229,8 +231,12 @@ export default function ActivoDetallePage() {
       form.append('tipo', modalTipo)
       form.append('condicion_equipo', condicion)
       form.append('observaciones', observaciones)
-      const firmaBlob = dataURLtoBlob(sigRef.current.getTrimmedCanvas().toDataURL('image/png'))
-      form.append('firma', firmaBlob, 'firma.png')
+      if (esHistorico) {
+        form.append('historico', 'true')
+      } else {
+        const firmaBlob = dataURLtoBlob(sigRef.current!.getTrimmedCanvas().toDataURL('image/png'))
+        form.append('firma', firmaBlob, 'firma.png')
+      }
       fotos.forEach(f => form.append('fotos', f))
 
       await api.post('/actas', form, { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -664,7 +670,11 @@ export default function ActivoDetallePage() {
               <div>
                 <label className="label">Observaciones</label>
                 <textarea className="input" rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)}
-                  placeholder={condicion === 'robado' ? 'N° de parte policial, comisaría, fecha del hecho...' : condicion === 'extraviado' ? 'Circunstancias del extravío, fecha, lugar...' : ''} />
+                  placeholder={
+                    condicion === 'robado' ? 'N° de parte policial, comisaría, fecha del hecho...' :
+                    condicion === 'extraviado' ? 'Circunstancias del extravío, fecha, lugar...' :
+                    esHistorico ? 'Ej: Equipo entregado con anterioridad, registro administrativo' : ''
+                  } />
               </div>
 
               <div>
@@ -673,17 +683,29 @@ export default function ActivoDetallePage() {
                   onChange={e => setFotos(Array.from(e.target.files || []).slice(0, 5))} />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="label mb-0">Firma</label>
-                  <button type="button" onClick={() => sigRef.current?.clear()} className="text-xs text-gray-400 hover:text-primary-600 inline-flex items-center gap-1">
-                    <RotateCcw className="w-3 h-3" /> Limpiar
-                  </button>
+              <label className="flex items-start gap-2.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={esHistorico} onChange={e => setEsHistorico(e.target.checked)} />
+                <span className="text-sm text-gray-600">
+                  <strong className="text-gray-800">Registro histórico</strong> — este equipo ya se entregó/devolvió hace tiempo y no hay firma real disponible.
+                  Se usará un sello administrativo en vez de una firma, y podrás reemplazarlo después si consigues la firma real.
+                </span>
+              </label>
+
+              {esHistorico ? (
+                <p className="text-xs text-gray-400">Sin firma — quedará marcado como "sin firma real" en el historial, con opción de firmar después.</p>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="label mb-0">Firma</label>
+                    <button type="button" onClick={() => sigRef.current?.clear()} className="text-xs text-gray-400 hover:text-primary-600 inline-flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" /> Limpiar
+                    </button>
+                  </div>
+                  <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    <SignatureCanvas ref={sigRef} penColor="black" canvasProps={{ width: 448, height: 160, className: 'w-full' }} />
+                  </div>
                 </div>
-                <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                  <SignatureCanvas ref={sigRef} penColor="black" canvasProps={{ width: 448, height: 160, className: 'w-full' }} />
-                </div>
-              </div>
+              )}
             </div>
             <div className="p-6 pt-0 flex justify-end gap-3">
               <button className="btn-secondary" onClick={() => setModalTipo(null)}>Cancelar</button>

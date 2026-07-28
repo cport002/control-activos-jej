@@ -79,11 +79,13 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
   { name: 'fotos', maxCount: 5 }
 ]), async (req, res) => {
   try {
-    const { activo_id, profesional_id, tipo, condicion_equipo, observaciones } = req.body;
+    const { activo_id, profesional_id, tipo, condicion_equipo, observaciones, historico } = req.body;
     if (!activo_id || !profesional_id || !tipo) return res.status(400).json({ error: 'Datos incompletos' });
     if (!['entrega', 'devolucion'].includes(tipo)) return res.status(400).json({ error: 'Tipo de acta inválido' });
+    const esHistorico = historico === 'true' || historico === true;
     const firmaFile = req.files?.firma?.[0];
-    if (!firmaFile) return res.status(400).json({ error: 'La firma es requerida' });
+    if (!firmaFile && !esHistorico) return res.status(400).json({ error: 'La firma es requerida' });
+    const firmaUrl = esHistorico ? SELLO_HISTORICO_URL : firmaFile.path;
 
     const activo = (await sql('SELECT * FROM activos WHERE id = ?', [activo_id])).rows[0];
     if (!activo) return res.status(404).json({ error: 'Activo no encontrado' });
@@ -102,7 +104,7 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
       const r = await tsql(
         `INSERT INTO actas (activo_id, profesional_id, tipo, condicion_equipo, observaciones, firma_url, usuario_id)
          VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-        [activo_id, profesional_id, tipo, condicion_equipo || 'bueno', observaciones || null, firmaFile.path, req.usuario.id]
+        [activo_id, profesional_id, tipo, condicion_equipo || 'bueno', observaciones || null, firmaUrl, req.usuario.id]
       );
       const actaId = r.rows[0].id;
 
