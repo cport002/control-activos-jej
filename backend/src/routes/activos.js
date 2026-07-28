@@ -61,9 +61,11 @@ router.get('/:id/actas', autenticar, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/activos — profesional_id es opcional: si se envía, el activo queda asignado
-// directamente a esa persona (sin acta firmada todavía; puede firmar después desde su link).
-router.post('/', autenticar, autorizar('admin', 'operador'), async (req, res) => {
+// POST /api/activos — multipart: foto_equipo (opcional). profesional_id es opcional: si se envía,
+// el activo queda asignado directamente a esa persona (sin acta firmada todavía; puede firmar después desde su link).
+router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
+  { name: 'foto_equipo', maxCount: 1 }
+]), async (req, res) => {
   try {
     const { nombre, tipo, marca, modelo, numero_serie, accesorios, notas, profesional_id } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
@@ -80,10 +82,12 @@ router.post('/', autenticar, autorizar('admin', 'operador'), async (req, res) =>
       estado = 'asignado';
     }
 
+    const fotoFile = req.files?.foto_equipo?.[0];
+
     const r = await sql(
-      `INSERT INTO activos (nombre, tipo, marca, modelo, numero_serie, accesorios, notas, estado, profesional_actual_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-      [nombre.trim(), tipo || 'Otro', marca || null, modelo || null, numero_serie || null, accesorios || null, notas || null, estado, profesional_id || null]
+      `INSERT INTO activos (nombre, tipo, marca, modelo, numero_serie, accesorios, notas, foto_url, estado, profesional_actual_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [nombre.trim(), tipo || 'Otro', marca || null, modelo || null, numero_serie || null, accesorios || null, notas || null, fotoFile?.path || null, estado, profesional_id || null]
     );
     const id = r.rows[0].id;
     registrarAuditoria('activos', id, 'INSERT', null, req.body, req.usuario.id, req.ip, 'Activo registrado');
@@ -113,20 +117,23 @@ router.post('/:id/asignar', autenticar, autorizar('admin', 'operador'), async (r
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// PUT /api/activos/:id
-router.put('/:id', autenticar, autorizar('admin', 'operador'), async (req, res) => {
+// PUT /api/activos/:id — multipart: foto_equipo (opcional, reemplaza la foto actual si se envía)
+router.put('/:id', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
+  { name: 'foto_equipo', maxCount: 1 }
+]), async (req, res) => {
   try {
     const anterior = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.id])).rows[0];
     if (!anterior) return res.status(404).json({ error: 'Activo no encontrado' });
 
     const { nombre, tipo, marca, modelo, numero_serie, rotulo_codelco, accesorios, estado, notas } = req.body;
+    const fotoFile = req.files?.foto_equipo?.[0];
     await sql(
-      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, rotulo_codelco = ?, accesorios = ?, estado = ?, notas = ?, updated_at = NOW()
+      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, rotulo_codelco = ?, accesorios = ?, estado = ?, notas = ?, foto_url = ?, updated_at = NOW()
        WHERE id = ?`,
       [
         nombre ?? anterior.nombre, tipo ?? anterior.tipo, marca ?? anterior.marca, modelo ?? anterior.modelo,
         numero_serie ?? anterior.numero_serie, rotulo_codelco ?? anterior.rotulo_codelco, accesorios ?? anterior.accesorios,
-        estado ?? anterior.estado, notas ?? anterior.notas, req.params.id
+        estado ?? anterior.estado, notas ?? anterior.notas, fotoFile?.path || anterior.foto_url, req.params.id
       ]
     );
     registrarAuditoria('activos', req.params.id, 'UPDATE', anterior, req.body, req.usuario.id, req.ip, 'Activo actualizado');

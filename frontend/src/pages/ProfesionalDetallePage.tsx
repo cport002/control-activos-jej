@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import api, { whatsappUrl } from '../services/api'
-import type { Profesional, Activo } from '../types'
+import api, { fmt, whatsappUrl } from '../services/api'
+import type { Profesional, Activo, Acta } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Edit2, Link2, MessageCircle, ChevronRight, Boxes } from 'lucide-react'
+import { ArrowLeft, Edit2, Link2, MessageCircle, ChevronRight, Boxes, Download, History } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
+
+const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
 
 const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '', tipo: 'jej', empresa: '', activo: true }
 
@@ -15,6 +17,7 @@ export default function ProfesionalDetallePage() {
   const { puedeEditar } = useAuth()
   const [profesional, setProfesional] = useState<Profesional | null>(null)
   const [activos, setActivos] = useState<Activo[]>([])
+  const [actas, setActas] = useState<Acta[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
@@ -22,14 +25,26 @@ export default function ProfesionalDetallePage() {
   const cargar = () => {
     Promise.all([
       api.get(`/profesionales/${id}`),
-      api.get(`/profesionales/${id}/activos`)
-    ]).then(([p, a]) => {
+      api.get(`/profesionales/${id}/activos`),
+      api.get('/actas', { params: { profesional_id: id } })
+    ]).then(([p, a, ac]) => {
       setProfesional(p.data)
       setActivos(a.data)
+      setActas(ac.data)
       setLoading(false)
     }).catch(() => { setLoading(false); toast.error('No se pudo cargar el profesional') })
   }
   useEffect(cargar, [id])
+
+  const descargarPDF = async (actaId: number) => {
+    try {
+      const r = await api.get(`/actas/${actaId}/pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(r.data)
+      window.open(url, '_blank')
+    } catch {
+      toast.error('No se pudo generar el PDF')
+    }
+  }
 
   const abrirEditar = () => {
     if (!profesional) return
@@ -143,6 +158,46 @@ export default function ProfesionalDetallePage() {
           {activos.length === 0 && (
             <div className="text-center py-10 text-gray-400">No tiene equipos asignados actualmente</div>
           )}
+        </div>
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <History className="w-4 h-4 text-primary-600" />
+          <h3>Historial de actas ({actas.length})</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="table-header">Fecha</th>
+                <th className="table-header">Tipo</th>
+                <th className="table-header">Equipo</th>
+                <th className="table-header">Condición</th>
+                <th className="table-header text-center">PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {actas.map(a => (
+                <tr key={a.id} className="table-row">
+                  <td className="table-cell text-gray-500">{fmt.fecha(a.fecha)}</td>
+                  <td className="table-cell"><span className={a.tipo === 'entrega' ? 'badge-blue' : 'badge-green'}>{tipoLabel[a.tipo]}</span></td>
+                  <td className="table-cell font-medium">
+                    {a.activo_id ? <Link to={`/activos/${a.activo_id}`} className="hover:text-primary-600">{a.activo_nombre}</Link> : a.activo_nombre}
+                  </td>
+                  <td className="table-cell text-gray-600 capitalize">{a.condicion_equipo.replace('_', ' ')}</td>
+                  <td className="table-cell text-center">
+                    <button onClick={() => descargarPDF(a.id)} title="Descargar PDF" className="text-gray-400 hover:text-primary-600 transition-colors">
+                      <Download className="w-4 h-4 inline" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {actas.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-10 text-gray-400">Aún no hay actas registradas para este profesional</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

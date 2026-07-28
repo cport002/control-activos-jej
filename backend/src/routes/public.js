@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/profesional/:token', async (req, res) => {
   try {
     const profesional = (await sql(
-      'SELECT id, nombre, cargo, cco FROM profesionales WHERE token = ?',
+      'SELECT id, nombre, cargo, cco FROM profesionales WHERE token = ? AND activo = true',
       [req.params.token]
     )).rows[0];
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
@@ -34,7 +34,7 @@ router.post('/profesional/:token/activo/:activoId/firmar', uploadActa.fields([
   { name: 'fotos', maxCount: 5 }
 ]), async (req, res) => {
   try {
-    const profesional = (await sql('SELECT id, nombre FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    const profesional = (await sql('SELECT id, nombre FROM profesionales WHERE token = ? AND activo = true', [req.params.token])).rows[0];
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const activo = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.activoId])).rows[0];
@@ -75,7 +75,7 @@ router.post('/profesional/:token/activo/:activoId/devolver', uploadActa.fields([
   { name: 'fotos', maxCount: 5 }
 ]), async (req, res) => {
   try {
-    const profesional = (await sql('SELECT id, nombre FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    const profesional = (await sql('SELECT id, nombre FROM profesionales WHERE token = ? AND activo = true', [req.params.token])).rows[0];
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const activo = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.activoId])).rows[0];
@@ -124,7 +124,7 @@ router.post('/profesional/:token/activo/:activoId/devolver', uploadActa.fields([
 // GET /api/public/profesional/:token/historial — todas las actas (entrega/devolución) del profesional, pasadas y presentes
 router.get('/profesional/:token/historial', async (req, res) => {
   try {
-    const profesional = (await sql('SELECT id FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    const profesional = (await sql('SELECT id FROM profesionales WHERE token = ? AND activo = true', [req.params.token])).rows[0];
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const historial = (await sql(`
@@ -143,7 +143,7 @@ router.get('/profesional/:token/historial', async (req, res) => {
 // GET /api/public/profesional/:token/acta/:actaId/pdf
 router.get('/profesional/:token/acta/:actaId/pdf', async (req, res) => {
   try {
-    const profesional = (await sql('SELECT id FROM profesionales WHERE token = ?', [req.params.token])).rows[0];
+    const profesional = (await sql('SELECT id FROM profesionales WHERE token = ? AND activo = true', [req.params.token])).rows[0];
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const r = await sql(`

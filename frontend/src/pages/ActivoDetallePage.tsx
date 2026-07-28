@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, X, Trash2, Send, PackageCheck, Edit2, Archive } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import { TIPOS_ACTIVO } from '../types'
+import { parseNotas, composeNotas, type DetalleTecnico } from '../utils/notas'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
@@ -52,9 +53,12 @@ export default function ActivoDetallePage() {
   const [movFoto, setMovFoto] = useState<File | null>(null)
   const [guardandoMov, setGuardandoMov] = useState(false)
 
-  const EDITAR_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', rotulo_codelco: '', accesorios: '', notas: '' }
+  const EDITAR_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', rotulo_codelco: '', accesorios: '' }
+  const DETALLE_INICIAL: DetalleTecnico = { procesador: '', ram: '', disco: '', so: '', gama: '', resto: '' }
   const [editando, setEditando] = useState(false)
   const [formEditar, setFormEditar] = useState(EDITAR_INICIAL)
+  const [detalleEditar, setDetalleEditar] = useState<DetalleTecnico>(DETALLE_INICIAL)
+  const [fotoEditar, setFotoEditar] = useState<File | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [dandoBaja, setDandoBaja] = useState(false)
 
@@ -146,8 +150,10 @@ export default function ActivoDetallePage() {
     setFormEditar({
       nombre: activo.nombre, tipo: activo.tipo, marca: activo.marca || '', modelo: activo.modelo || '',
       numero_serie: activo.numero_serie || '', rotulo_codelco: activo.rotulo_codelco || '',
-      accesorios: activo.accesorios || '', notas: activo.notas || ''
+      accesorios: activo.accesorios || ''
     })
+    setDetalleEditar(parseNotas(activo.notas))
+    setFotoEditar(null)
     setEditando(true)
   }
 
@@ -155,7 +161,11 @@ export default function ActivoDetallePage() {
     e.preventDefault()
     setGuardandoEdicion(true)
     try {
-      await api.put(`/activos/${id}`, formEditar)
+      const fd = new FormData()
+      Object.entries(formEditar).forEach(([k, v]) => fd.append(k, v))
+      fd.append('notas', composeNotas(detalleEditar))
+      if (fotoEditar) fd.append('foto_equipo', fotoEditar)
+      await api.put(`/activos/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       toast.success('Activo actualizado')
       setEditando(false)
       cargar()
@@ -524,10 +534,43 @@ export default function ActivoDetallePage() {
                 <label className="label">Accesorios incluidos</label>
                 <input className="input" value={formEditar.accesorios} onChange={e => setFormEditar({ ...formEditar, accesorios: e.target.value })} />
               </div>
-              <div>
-                <label className="label">Notas / Detalle técnico</label>
-                <textarea className="input" rows={3} value={formEditar.notas} onChange={e => setFormEditar({ ...formEditar, notas: e.target.value })} />
+
+              <div className="pt-2 border-t border-gray-100">
+                <p className="label mb-2">Detalle técnico</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-xs">Procesador</label>
+                    <input className="input" value={detalleEditar.procesador} onChange={e => setDetalleEditar({ ...detalleEditar, procesador: e.target.value })} placeholder="Ej: Intel Core i7-1255U" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">RAM</label>
+                    <input className="input" value={detalleEditar.ram} onChange={e => setDetalleEditar({ ...detalleEditar, ram: e.target.value })} placeholder="Ej: 32 GB" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">Disco</label>
+                    <input className="input" value={detalleEditar.disco} onChange={e => setDetalleEditar({ ...detalleEditar, disco: e.target.value })} placeholder="Ej: 500 GB SSD" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">Sistema Operativo</label>
+                    <input className="input" value={detalleEditar.so} onChange={e => setDetalleEditar({ ...detalleEditar, so: e.target.value })} placeholder="Ej: Windows 11 Pro" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="label text-xs">Gama</label>
+                    <input className="input" value={detalleEditar.gama} onChange={e => setDetalleEditar({ ...detalleEditar, gama: e.target.value })} placeholder="Ej: Alta / Media / Básica" />
+                  </div>
+                </div>
               </div>
+
+              <div>
+                <label className="label">Notas adicionales</label>
+                <textarea className="input" rows={2} value={detalleEditar.resto} onChange={e => setDetalleEditar({ ...detalleEditar, resto: e.target.value })} />
+              </div>
+
+              <div>
+                <label className="label">Foto del equipo {activo.foto_url && <span className="text-gray-400 font-normal">(ya tiene una — sube una nueva para reemplazarla)</span>}</label>
+                <input type="file" accept="image/*" className="input" onChange={e => setFotoEditar(e.target.files?.[0] || null)} />
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" className="btn-secondary" onClick={() => setEditando(false)}>Cancelar</button>
                 <button type="submit" className="btn-primary" disabled={guardandoEdicion}>{guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}</button>

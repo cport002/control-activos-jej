@@ -1,4 +1,8 @@
 const PDFDocument = require('pdfkit');
+const path = require('path');
+
+const LOGO_PATH = path.join(__dirname, '..', 'assets', 'logo-jej.png');
+const LOGO_RATIO = 438 / 177; // ancho/alto real del archivo
 
 const PURPLE = '#4f46e5';
 const GRAY_900 = '#1f2937';
@@ -30,8 +34,15 @@ async function generarActaPDF(acta, res) {
   const doc = new PDFDocument({ size: 'A4', margins: { top: M, bottom: 70, left: M, right: M } });
   doc.pipe(res);
 
-  doc.font('Helvetica-Bold').fontSize(18).fillColor(GRAY_900).text('JEJ Ingeniería', M, M);
-  doc.font('Helvetica').fontSize(13).fillColor(PURPLE).text(TIPO_LABEL[acta.tipo] || acta.tipo, M, doc.y + 2);
+  const LOGO_W = 120;
+  const LOGO_H = LOGO_W / LOGO_RATIO;
+  try {
+    doc.image(LOGO_PATH, M, M, { width: LOGO_W });
+    doc.y = M + LOGO_H + 10;
+  } catch {
+    doc.font('Helvetica-Bold').fontSize(18).fillColor(GRAY_900).text('JEJ Ingeniería', M, M);
+  }
+  doc.font('Helvetica').fontSize(13).fillColor(PURPLE).text(TIPO_LABEL[acta.tipo] || acta.tipo, M, doc.y);
   doc.font('Helvetica').fontSize(9).fillColor(GRAY_400).text(`N° ${acta.id} · ${new Date(acta.fecha).toLocaleDateString('es-CL')}`, M, doc.y + 2);
   doc.moveDown(1.2);
 

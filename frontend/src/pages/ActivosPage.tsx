@@ -8,11 +8,13 @@ import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
 import { Plus, Search, Boxes, ChevronRight, FileDown, Camera } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
+import { composeNotas, type DetalleTecnico } from '../utils/notas'
 
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
 
-const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', notas: '', profesional_id: '' }
+const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', profesional_id: '' }
+const DETALLE_INICIAL: DetalleTecnico = { procesador: '', ram: '', disco: '', so: '', gama: '', resto: '' }
 
 export default function ActivosPage() {
   const { puedeEditar } = useAuth()
@@ -25,6 +27,8 @@ export default function ActivosPage() {
   const [filtroTipo, setFiltroTipo] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
+  const [detalle, setDetalle] = useState<DetalleTecnico>(DETALLE_INICIAL)
+  const [foto, setFoto] = useState<File | null>(null)
 
   const cargar = () => {
     const params: any = {}
@@ -36,7 +40,7 @@ export default function ActivosPage() {
   useEffect(cargar, [busqueda, filtroEstado, filtroTipo])
   useEffect(() => { api.get('/profesionales').then(r => setProfesionales(r.data)).catch(() => {}) }, [])
 
-  const abrirNuevo = () => { setForm(FORM_INICIAL); setShowForm(true) }
+  const abrirNuevo = () => { setForm(FORM_INICIAL); setDetalle(DETALLE_INICIAL); setFoto(null); setShowForm(true) }
 
   const exportarExcel = () => {
     const filas = activos.map(a => ({
@@ -61,7 +65,11 @@ export default function ActivosPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await api.post('/activos', form)
+      const fd = new FormData()
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v))
+      fd.append('notas', composeNotas(detalle))
+      if (foto) fd.append('foto_equipo', foto)
+      await api.post('/activos', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       toast.success('Activo registrado')
       setShowForm(false)
       cargar()
@@ -198,10 +206,43 @@ export default function ActivosPage() {
                 <label className="label">Accesorios incluidos</label>
                 <input className="input" value={form.accesorios} onChange={e => setForm({ ...form, accesorios: e.target.value })} placeholder="Ej: Cargador, Antena, Batería y Base de carga" />
               </div>
-              <div>
-                <label className="label">Notas</label>
-                <textarea className="input" rows={2} value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} />
+
+              <div className="pt-2 border-t border-gray-100">
+                <p className="label mb-2">Detalle técnico (opcional)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-xs">Procesador</label>
+                    <input className="input" value={detalle.procesador} onChange={e => setDetalle({ ...detalle, procesador: e.target.value })} placeholder="Ej: Intel Core i7-1255U" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">RAM</label>
+                    <input className="input" value={detalle.ram} onChange={e => setDetalle({ ...detalle, ram: e.target.value })} placeholder="Ej: 32 GB" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">Disco</label>
+                    <input className="input" value={detalle.disco} onChange={e => setDetalle({ ...detalle, disco: e.target.value })} placeholder="Ej: 500 GB SSD" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">Sistema Operativo</label>
+                    <input className="input" value={detalle.so} onChange={e => setDetalle({ ...detalle, so: e.target.value })} placeholder="Ej: Windows 11 Pro" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="label text-xs">Gama</label>
+                    <input className="input" value={detalle.gama} onChange={e => setDetalle({ ...detalle, gama: e.target.value })} placeholder="Ej: Alta / Media / Básica" />
+                  </div>
+                </div>
               </div>
+
+              <div>
+                <label className="label">Notas adicionales</label>
+                <textarea className="input" rows={2} value={detalle.resto} onChange={e => setDetalle({ ...detalle, resto: e.target.value })} />
+              </div>
+
+              <div>
+                <label className="label">Foto del equipo (opcional)</label>
+                <input type="file" accept="image/*" className="input" onChange={e => setFoto(e.target.files?.[0] || null)} />
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
                 <button type="submit" className="btn-primary">Registrar Activo</button>

@@ -9,11 +9,13 @@ cloudinary.config({
 });
 
 // Una sola storage: elige la carpeta de Cloudinary según el nombre del campo del formulario
-// (firma -> jej-activos-firmas, fotos -> jej-activos-evidencia).
+// (firma -> jej-activos-firmas, foto_equipo -> jej-activos-fotos-equipo, foto/fotos -> jej-activos-evidencia).
 const storage = new CloudinaryStorage({
   cloudinary,
   params: (req, file) => ({
-    folder: file.fieldname === 'firma' ? 'jej-activos-firmas' : 'jej-activos-evidencia',
+    folder: file.fieldname === 'firma' ? 'jej-activos-firmas'
+      : file.fieldname === 'foto_equipo' ? 'jej-activos-fotos-equipo'
+      : 'jej-activos-evidencia',
     allowed_formats: ['jpg', 'jpeg', 'png'],
     resource_type: 'image'
   })
