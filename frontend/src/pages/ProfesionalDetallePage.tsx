@@ -94,7 +94,6 @@ export default function ProfesionalDetallePage() {
       <PageHeader
         title={profesional.nombre}
         subtitle={profesional.tipo === 'externo' ? `Externo${profesional.empresa ? ` — ${profesional.empresa}` : ''}` : (profesional.cargo || 'Sin cargo registrado')}
-        icon={ArrowLeft}
         actions={
           <div className="flex gap-2">
             <button onClick={() => navigate('/profesionales')} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">

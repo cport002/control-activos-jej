@@ -307,7 +307,6 @@ export default function ActivoDetallePage() {
       <PageHeader
         title={activo.nombre}
         subtitle={activo.tipo}
-        icon={ArrowLeft}
         actions={
           <div className="flex gap-2">
             <button onClick={() => navigate('/activos')} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
