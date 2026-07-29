@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
 import api, { fmt } from '../services/api'
 import toast from 'react-hot-toast'
-import { HardHat, CheckCircle2, Download, RotateCcw, X, History } from 'lucide-react'
+import { CheckCircle2, Download, RotateCcw, X, History } from 'lucide-react'
 
 interface ActivoAsignado {
   id: number
@@ -127,8 +127,8 @@ export default function PerfilProfesionalPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center gap-3 justify-center">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-            <HardHat className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-sm">
+            <img src="/logo-jej.png" alt="JEJ" className="w-full" />
           </div>
           <div>
             <p className="font-bold text-gray-900">JEJ INGENIERÍA</p>
