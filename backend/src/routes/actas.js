@@ -90,8 +90,20 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
     const activo = (await sql('SELECT * FROM activos WHERE id = ?', [activo_id])).rows[0];
     if (!activo) return res.status(404).json({ error: 'Activo no encontrado' });
 
-    if (tipo === 'entrega' && activo.estado !== 'disponible') {
+    // Caso especial: documentar (histórico o con firma real) la entrega de un equipo que YA está
+    // asignado a esta misma persona pero nunca tuvo acta (ej. cargado directo por importación masiva).
+    // No cambia estado ni profesional — solo dejamos constancia de una entrega que ya ocurrió.
+    const documentaEntregaYaVigente = tipo === 'entrega' && activo.estado === 'asignado' && String(activo.profesional_actual_id) === String(profesional_id);
+
+    if (tipo === 'entrega' && activo.estado !== 'disponible' && !documentaEntregaYaVigente) {
       return res.status(400).json({ error: 'El activo no está disponible para entrega' });
+    }
+    if (documentaEntregaYaVigente) {
+      const yaExiste = (await sql(
+        "SELECT id FROM actas WHERE activo_id = ? AND profesional_id = ? AND tipo = 'entrega'",
+        [activo_id, profesional_id]
+      )).rows[0];
+      if (yaExiste) return res.status(400).json({ error: 'Ya existe una acta de entrega para este activo y este profesional' });
     }
     if (tipo === 'devolucion') {
       if (activo.estado !== 'asignado') return res.status(400).json({ error: 'El activo no está asignado actualmente' });
@@ -113,7 +125,9 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
         await tsql('INSERT INTO acta_fotos (acta_id, foto_url) VALUES (?, ?)', [actaId, foto.path]);
       }
 
-      if (tipo === 'entrega') {
+      if (documentaEntregaYaVigente) {
+        // El activo ya está asignado a esta persona: no tocamos estado/profesional/nombre, solo queda la acta.
+      } else if (tipo === 'entrega') {
         const prof = await tsql('SELECT nombre FROM profesionales WHERE id = ?', [profesional_id]);
         const todos = (await tsql('SELECT id, nombre FROM profesionales')).rows;
         const nuevoNombre = nombreActualizado(activo.nombre, prof.rows[0]?.nombre, todos);

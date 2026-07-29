@@ -93,6 +93,19 @@ export default function ActivoDetallePage() {
     setTimeout(() => sigRef.current?.clear(), 0)
   }
 
+  // Equipo ya asignado pero sin ninguna acta de entrega (ej. cargado directo por importación masiva):
+  // no puede usar "Registrar entrega" (exige estado disponible), así que se documenta aparte.
+  const abrirEntregaYaVigente = () => {
+    if (!activo?.profesional_actual_id) return
+    setModalTipo('entrega')
+    setProfesionalId(String(activo.profesional_actual_id))
+    setCondicion('bueno')
+    setObservaciones('')
+    setFotos([])
+    setEsHistorico(true)
+    setTimeout(() => sigRef.current?.clear(), 0)
+  }
+
   const eliminarActa = async (acta: Acta) => {
     if (!confirm(`¿Eliminar esta acta de ${tipoLabel[acta.tipo].toLowerCase()} de ${acta.profesional_nombre}? Esto permite volver a firmar (por ejemplo, si era una prueba).`)) return
     try {
@@ -285,6 +298,10 @@ export default function ActivoDetallePage() {
     ? actas.find(a => a.tipo === 'entrega' && a.es_historico && a.profesional_id === activo.profesional_actual_id)
     : undefined
 
+  // Asignado pero sin ninguna acta de entrega registrada todavía (ni real ni histórica)
+  const entregaFaltante = activo.estado === 'asignado'
+    && !actas.some(a => a.tipo === 'entrega' && a.profesional_id === activo.profesional_actual_id)
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -314,6 +331,11 @@ export default function ActivoDetallePage() {
             {puedeEditar && actaHistoricaPendiente && (
               <button onClick={() => abrirFirmarHistorica(actaHistoricaPendiente.id)} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
                 <FileSignature className="w-4 h-4" /> Firmar recepción pendiente
+              </button>
+            )}
+            {puedeEditar && entregaFaltante && (
+              <button onClick={abrirEntregaYaVigente} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
+                <FileSignature className="w-4 h-4" /> Registrar entrega histórica
               </button>
             )}
             {puedeEditar && activo.estado !== 'asignado' && activo.ubicacion === 'salvador' && (
@@ -635,13 +657,18 @@ export default function ActivoDetallePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2>{modalTipo === 'entrega' ? 'Registrar entrega' : 'Registrar devolución'}</h2>
+              <h2>{modalTipo === 'entrega' ? (activo.estado === 'asignado' ? 'Registrar entrega histórica' : 'Registrar entrega') : 'Registrar devolución'}</h2>
               <button onClick={() => setModalTipo(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4">
+              {modalTipo === 'entrega' && activo.estado === 'asignado' && (
+                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  Este equipo ya está asignado a {activo.profesional_nombre} pero no tenía ninguna acta de entrega registrada.
+                </p>
+              )}
               <div>
                 <label className="label">Profesional</label>
-                {modalTipo === 'devolucion' ? (
+                {modalTipo === 'devolucion' || (modalTipo === 'entrega' && activo.estado === 'asignado') ? (
                   <input className="input bg-gray-50" value={activo.profesional_nombre || ''} disabled />
                 ) : (
                   <select className="input" value={profesionalId} onChange={e => setProfesionalId(e.target.value)}>
