@@ -566,7 +566,7 @@ export default function ActivoDetallePage() {
 
       {editando && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2>Editar activo</h2>
               <button onClick={() => setEditando(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -654,7 +654,7 @@ export default function ActivoDetallePage() {
 
       {modalTipo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2>{modalTipo === 'entrega' ? (activo.estado === 'asignado' ? 'Registrar entrega histórica' : 'Registrar entrega') : 'Registrar devolución'}</h2>
               <button onClick={() => setModalTipo(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -745,7 +745,7 @@ export default function ActivoDetallePage() {
 
       {firmarHistoricaId && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2>Firmar recepción pendiente</h2>
               <button onClick={() => setFirmarHistoricaId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
