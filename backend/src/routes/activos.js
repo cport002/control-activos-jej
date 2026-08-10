@@ -20,7 +20,7 @@ router.get('/', autenticar, async (req, res) => {
     `;
     const params = [];
     if (busqueda) {
-      const { clause, params: p } = condicionBusqueda(busqueda, ['a.nombre', 'a.marca', 'a.modelo', 'a.numero_serie', 'p.nombre']);
+      const { clause, params: p } = condicionBusqueda(busqueda, ['a.nombre', 'a.marca', 'a.modelo', 'a.numero_serie', 'a.rotulo_codelco', 'p.nombre']);
       query += clause;
       params.push(...p);
     }
