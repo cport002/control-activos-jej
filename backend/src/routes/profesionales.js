@@ -8,7 +8,7 @@ const router = express.Router();
 // GET /api/profesionales?busqueda=&estado=
 router.get('/', autenticar, async (req, res) => {
   try {
-    const { busqueda, estado } = req.query;
+    const { busqueda, estado, tipo } = req.query;
     let query = 'SELECT * FROM profesionales WHERE 1=1';
     const params = [];
     if (busqueda) {
@@ -18,6 +18,7 @@ router.get('/', autenticar, async (req, res) => {
     }
     if (estado === 'activo') query += ' AND activo = true';
     if (estado === 'inactivo') query += ' AND activo = false';
+    if (tipo === 'jej' || tipo === 'externo') { query += ' AND tipo = ?'; params.push(tipo); }
     query += ' ORDER BY nombre';
     const r = await sql(query, params);
     res.json(r.rows);

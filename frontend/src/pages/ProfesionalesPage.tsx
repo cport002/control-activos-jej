@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import api, { whatsappUrl } from '../services/api'
-import type { Profesional } from '../types'
+import type { Profesional, Activo } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { Plus, Search, Users, ChevronRight, Link2, MessageCircle } from 'lucide-react'
+import { Plus, Search, Users, ChevronRight, Link2, MessageCircle, FileDown } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '', tipo: 'jej', empresa: '' }
@@ -12,17 +13,60 @@ const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telef
 export default function ProfesionalesPage() {
   const { puedeEditar } = useAuth()
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
+  const [activos, setActivos] = useState<Activo[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
 
   const cargar = () => {
     const params: any = {}
     if (busqueda) params.busqueda = busqueda
+    if (filtroTipo) params.tipo = filtroTipo
+    if (filtroEstado) params.estado = filtroEstado
     api.get('/profesionales', { params }).then(r => { setProfesionales(r.data); setLoading(false) }).catch(() => setLoading(false))
   }
-  useEffect(cargar, [busqueda])
+  useEffect(cargar, [busqueda, filtroTipo, filtroEstado])
+  useEffect(() => { api.get('/activos').then(r => setActivos(r.data)).catch(() => {}) }, [])
+
+  const exportarExcel = () => {
+    const filas: Record<string, string>[] = []
+    profesionales.forEach(p => {
+      const equipos = activos.filter(a => a.profesional_actual_id === p.id && a.estado === 'asignado')
+      const datosPersona = {
+        Nombre: p.nombre,
+        Tipo: p.tipo === 'externo' ? `Externo${p.empresa ? ` (${p.empresa})` : ''}` : 'JEJ',
+        RUT: p.rut || '',
+        Cargo: p.cargo || '',
+        CCO: p.cco || '',
+        'N° ODS': p.numero_ods || '',
+        Email: p.email || '',
+        Teléfono: p.telefono || '',
+        Estado: p.activo ? 'Activo' : 'Inactivo',
+      }
+      if (equipos.length === 0) {
+        filas.push({ ...datosPersona, 'Equipo Nombre': '', 'Equipo Tipo': '', 'Marca / Modelo': '', 'N° Serie': '', 'Rótulo Codelco': '', Propietario: '' })
+      } else {
+        equipos.forEach(eq => {
+          filas.push({
+            ...datosPersona,
+            'Equipo Nombre': eq.nombre,
+            'Equipo Tipo': eq.tipo,
+            'Marca / Modelo': [eq.marca, eq.modelo].filter(Boolean).join(' / '),
+            'N° Serie': eq.numero_serie || '',
+            'Rótulo Codelco': eq.rotulo_codelco || '',
+            Propietario: eq.propietario === 'Codelco' ? 'Codelco (préstamo)' : 'JEJ',
+          })
+        })
+      }
+    })
+    const ws = XLSX.utils.json_to_sheet(filas)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Profesionales')
+    XLSX.writeFile(wb, `Profesionales JEJ - ${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
 
   const copiarLink = async (p: Profesional) => {
     if (!p.token) return
@@ -64,16 +108,35 @@ export default function ProfesionalesPage() {
         title="Profesionales"
         subtitle={`${profesionales.length} profesional${profesionales.length !== 1 ? 'es' : ''}`}
         icon={Users}
-        actions={puedeEditar ? (
-          <button onClick={abrirNuevo} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
-            <Plus className="w-4 h-4" /> Nuevo Profesional
-          </button>
-        ) : undefined}
+        actions={
+          <div className="flex gap-2">
+            <button onClick={exportarExcel} className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+              <FileDown className="w-4 h-4" /> Exportar Excel
+            </button>
+            {puedeEditar && (
+              <button onClick={abrirNuevo} className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
+                <Plus className="w-4 h-4" /> Nuevo Profesional
+              </button>
+            )}
+          </div>
+        }
       />
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input className="input pl-10" placeholder="Buscar por nombre, RUT o cargo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input className="input pl-10" placeholder="Buscar por nombre, RUT o cargo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        </div>
+        <select className="input sm:w-44" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          <option value="jej">Personal JEJ</option>
+          <option value="externo">Externo</option>
+        </select>
+        <select className="input sm:w-40" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+          <option value="">Todos</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
       </div>
 
       <div className="card p-0 overflow-hidden">
