@@ -25,7 +25,7 @@ export default function ActivosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState(searchParams.get('estado') || '')
   const [filtroTipo, setFiltroTipo] = useState('')
-  const [filtroPropietario, setFiltroPropietario] = useState('')
+  const [filtroPropietario, setFiltroPropietario] = useState(searchParams.get('propietario') || '')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
   const [detalle, setDetalle] = useState<DetalleTecnico>(DETALLE_INICIAL)
