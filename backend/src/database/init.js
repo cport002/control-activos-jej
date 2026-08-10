@@ -68,6 +68,9 @@ async function initDatabase() {
     await client.query(`ALTER TABLE actas DROP CONSTRAINT IF EXISTS actas_condicion_equipo_check;`);
     await client.query(`ALTER TABLE actas ADD CONSTRAINT actas_condicion_equipo_check CHECK(condicion_equipo IN ('bueno','con_observaciones','dañado','extraviado','robado'));`);
 
+    // Migracion: propietario del activo (JEJ o Codelco en préstamo)
+    await client.query(`ALTER TABLE activos ADD COLUMN IF NOT EXISTS propietario TEXT NOT NULL DEFAULT 'JEJ' CHECK(propietario IN ('JEJ','Codelco'));`);
+
     console.log('Base de datos PostgreSQL lista');
   } finally {
     client.release();

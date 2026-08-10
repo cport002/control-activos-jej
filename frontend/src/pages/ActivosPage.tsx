@@ -13,7 +13,7 @@ import { composeNotas, type DetalleTecnico } from '../utils/notas'
 const estadoBadge: Record<string, string> = { disponible: 'badge-green', asignado: 'badge-blue', de_baja: 'badge-gray' }
 const estadoLabel: Record<string, string> = { disponible: 'disponible', asignado: 'asignado', de_baja: 'de baja' }
 
-const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', profesional_id: '' }
+const FORM_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', accesorios: '', profesional_id: '', propietario: 'JEJ' }
 const DETALLE_INICIAL: DetalleTecnico = { procesador: '', ram: '', disco: '', so: '', gama: '', resto: '' }
 
 export default function ActivosPage() {
@@ -25,6 +25,7 @@ export default function ActivosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState(searchParams.get('estado') || '')
   const [filtroTipo, setFiltroTipo] = useState('')
+  const [filtroPropietario, setFiltroPropietario] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
   const [detalle, setDetalle] = useState<DetalleTecnico>(DETALLE_INICIAL)
@@ -35,9 +36,10 @@ export default function ActivosPage() {
     if (busqueda) params.busqueda = busqueda
     if (filtroEstado) params.estado = filtroEstado
     if (filtroTipo) params.tipo = filtroTipo
+    if (filtroPropietario) params.propietario = filtroPropietario
     api.get('/activos', { params }).then(r => { setActivos(r.data); setLoading(false) }).catch(() => setLoading(false))
   }
-  useEffect(cargar, [busqueda, filtroEstado, filtroTipo])
+  useEffect(cargar, [busqueda, filtroEstado, filtroTipo, filtroPropietario])
   useEffect(() => { api.get('/profesionales').then(r => setProfesionales(r.data)).catch(() => {}) }, [])
 
   const abrirNuevo = () => { setForm(FORM_INICIAL); setDetalle(DETALLE_INICIAL); setFoto(null); setShowForm(true) }
@@ -50,6 +52,7 @@ export default function ActivosPage() {
       Modelo: a.modelo || '',
       'N° Serie': a.numero_serie || '',
       'Rótulo Codelco': a.rotulo_codelco || '',
+      Propietario: a.propietario === 'Codelco' ? 'Codelco (préstamo)' : 'JEJ',
       'Asignado a': a.profesional_nombre || '',
       Estado: estadoLabel[a.estado],
       Ubicación: a.ubicacion === 'santiago' ? 'Santiago' : 'Salvador',
@@ -115,6 +118,11 @@ export default function ActivosPage() {
           <option value="asignado">Asignado</option>
           <option value="de_baja">De baja</option>
         </select>
+        <select className="input sm:w-44" value={filtroPropietario} onChange={e => setFiltroPropietario(e.target.value)}>
+          <option value="">Cualquier propietario</option>
+          <option value="JEJ">Propiedad JEJ</option>
+          <option value="Codelco">Préstamo Codelco</option>
+        </select>
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -128,6 +136,7 @@ export default function ActivosPage() {
               <th className="table-header">Asignado a</th>
               <th className="table-header text-center">Estado</th>
               <th className="table-header text-center">Ubicación</th>
+              <th className="table-header text-center">Propietario</th>
               <th className="table-header"></th>
             </tr>
           </thead>
@@ -148,6 +157,9 @@ export default function ActivosPage() {
                 <td className="table-cell text-center">
                   {a.ubicacion === 'santiago' ? <span className="badge-yellow">Santiago</span> : <span className="text-gray-300 text-xs">Salvador</span>}
                 </td>
+                <td className="table-cell text-center">
+                  {a.propietario === 'Codelco' ? <span className="badge-yellow">Codelco</span> : <span className="text-gray-300 text-xs">JEJ</span>}
+                </td>
                 <td className="table-cell">
                   <Link to={`/activos/${a.id}`} className="text-gray-400 hover:text-primary-600 transition-colors">
                     <ChevronRight className="w-5 h-5" />
@@ -156,7 +168,7 @@ export default function ActivosPage() {
               </tr>
             ))}
             {activos.length === 0 && (
-              <tr><td colSpan={8} className="text-center py-12 text-gray-400">No hay activos que coincidan con el filtro</td></tr>
+              <tr><td colSpan={9} className="text-center py-12 text-gray-400">No hay activos que coincidan con el filtro</td></tr>
             )}
           </tbody>
         </table>
@@ -194,6 +206,13 @@ export default function ActivosPage() {
                   <label className="label">Modelo</label>
                   <input className="input" value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} />
                 </div>
+              </div>
+              <div>
+                <label className="label">Propietario</label>
+                <select className="input" value={form.propietario} onChange={e => setForm({ ...form, propietario: e.target.value })}>
+                  <option value="JEJ">JEJ</option>
+                  <option value="Codelco">Codelco (préstamo)</option>
+                </select>
               </div>
               <div>
                 <label className="label">Asignar a (opcional)</label>

@@ -11,7 +11,7 @@ const router = express.Router();
 // GET /api/activos?busqueda=&estado=&tipo=
 router.get('/', autenticar, async (req, res) => {
   try {
-    const { busqueda, estado, tipo } = req.query;
+    const { busqueda, estado, tipo, propietario } = req.query;
     let query = `
       SELECT a.*, p.nombre AS profesional_nombre
       FROM activos a
@@ -26,6 +26,7 @@ router.get('/', autenticar, async (req, res) => {
     }
     if (estado) { query += ' AND a.estado = ?'; params.push(estado); }
     if (tipo) { query += ' AND a.tipo = ?'; params.push(tipo); }
+    if (propietario) { query += ' AND a.propietario = ?'; params.push(propietario); }
     query += ' ORDER BY a.nombre';
     const r = await sql(query, params);
     res.json(r.rows);
@@ -69,7 +70,7 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
   { name: 'foto_equipo', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { nombre, tipo, marca, modelo, numero_serie, accesorios, notas, profesional_id } = req.body;
+    const { nombre, tipo, marca, modelo, numero_serie, accesorios, notas, profesional_id, propietario } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
     if (numero_serie) {
@@ -87,9 +88,9 @@ router.post('/', autenticar, autorizar('admin', 'operador'), uploadActa.fields([
     const fotoFile = req.files?.foto_equipo?.[0];
 
     const r = await sql(
-      `INSERT INTO activos (nombre, tipo, marca, modelo, numero_serie, accesorios, notas, foto_url, estado, profesional_actual_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-      [nombre.trim(), tipo || 'Otro', marca || null, modelo || null, numero_serie || null, accesorios || null, notas || null, fotoFile?.path || null, estado, profesional_id || null]
+      `INSERT INTO activos (nombre, tipo, marca, modelo, numero_serie, accesorios, notas, foto_url, estado, profesional_actual_id, propietario)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [nombre.trim(), tipo || 'Otro', marca || null, modelo || null, numero_serie || null, accesorios || null, notas || null, fotoFile?.path || null, estado, profesional_id || null, propietario || 'JEJ']
     );
     const id = r.rows[0].id;
     registrarAuditoria('activos', id, 'INSERT', null, req.body, req.usuario.id, req.ip, 'Activo registrado');
@@ -127,15 +128,15 @@ router.put('/:id', autenticar, autorizar('admin', 'operador'), uploadActa.fields
     const anterior = (await sql('SELECT * FROM activos WHERE id = ?', [req.params.id])).rows[0];
     if (!anterior) return res.status(404).json({ error: 'Activo no encontrado' });
 
-    const { nombre, tipo, marca, modelo, numero_serie, rotulo_codelco, accesorios, estado, notas } = req.body;
+    const { nombre, tipo, marca, modelo, numero_serie, rotulo_codelco, accesorios, estado, notas, propietario } = req.body;
     const fotoFile = req.files?.foto_equipo?.[0];
     await sql(
-      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, rotulo_codelco = ?, accesorios = ?, estado = ?, notas = ?, foto_url = ?, updated_at = NOW()
+      `UPDATE activos SET nombre = ?, tipo = ?, marca = ?, modelo = ?, numero_serie = ?, rotulo_codelco = ?, accesorios = ?, estado = ?, notas = ?, foto_url = ?, propietario = ?, updated_at = NOW()
        WHERE id = ?`,
       [
         nombre ?? anterior.nombre, tipo ?? anterior.tipo, marca ?? anterior.marca, modelo ?? anterior.modelo,
         numero_serie ?? anterior.numero_serie, rotulo_codelco ?? anterior.rotulo_codelco, accesorios ?? anterior.accesorios,
-        estado ?? anterior.estado, notas ?? anterior.notas, fotoFile?.path || anterior.foto_url, req.params.id
+        estado ?? anterior.estado, notas ?? anterior.notas, fotoFile?.path || anterior.foto_url, propietario ?? anterior.propietario, req.params.id
       ]
     );
     registrarAuditoria('activos', req.params.id, 'UPDATE', anterior, req.body, req.usuario.id, req.ip, 'Activo actualizado');

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS activos (
   estado TEXT NOT NULL DEFAULT 'disponible' CHECK(estado IN ('disponible','asignado','de_baja')),
   profesional_actual_id INTEGER REFERENCES profesionales(id) ON DELETE SET NULL,
   ubicacion TEXT NOT NULL DEFAULT 'salvador' CHECK(ubicacion IN ('salvador','santiago')),
+  propietario TEXT NOT NULL DEFAULT 'JEJ' CHECK(propietario IN ('JEJ','Codelco')),
   notas TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

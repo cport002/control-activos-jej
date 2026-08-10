@@ -54,7 +54,7 @@ export default function ActivoDetallePage() {
   const [movFoto, setMovFoto] = useState<File | null>(null)
   const [guardandoMov, setGuardandoMov] = useState(false)
 
-  const EDITAR_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', rotulo_codelco: '', accesorios: '' }
+  const EDITAR_INICIAL = { nombre: '', tipo: 'Notebook', marca: '', modelo: '', numero_serie: '', rotulo_codelco: '', accesorios: '', propietario: 'JEJ' }
   const DETALLE_INICIAL: DetalleTecnico = { procesador: '', ram: '', disco: '', so: '', gama: '', resto: '' }
   const [editando, setEditando] = useState(false)
   const [formEditar, setFormEditar] = useState(EDITAR_INICIAL)
@@ -170,7 +170,7 @@ export default function ActivoDetallePage() {
     setFormEditar({
       nombre: activo.nombre, tipo: activo.tipo, marca: activo.marca || '', modelo: activo.modelo || '',
       numero_serie: activo.numero_serie || '', rotulo_codelco: activo.rotulo_codelco || '',
-      accesorios: activo.accesorios || ''
+      accesorios: activo.accesorios || '', propietario: activo.propietario || 'JEJ'
     })
     setDetalleEditar(parseNotas(activo.notas))
     setFotoEditar(null)
@@ -393,6 +393,10 @@ export default function ActivoDetallePage() {
             <p className="text-sm font-medium text-gray-900">{activo.rotulo_codelco}</p>
           </div>
         )}
+        <div className="card p-4">
+          <p className="text-xs text-gray-400 mb-1">Propietario</p>
+          {activo.propietario === 'Codelco' ? <span className="badge-yellow">Codelco (préstamo)</span> : <span className="badge-gray">JEJ</span>}
+        </div>
       </div>
 
       {activo.foto_url && (
@@ -601,6 +605,13 @@ export default function ActivoDetallePage() {
               <div>
                 <label className="label">Rótulo Codelco</label>
                 <input className="input" value={formEditar.rotulo_codelco} onChange={e => setFormEditar({ ...formEditar, rotulo_codelco: e.target.value })} placeholder="Ej: ZEX000263296" />
+              </div>
+              <div>
+                <label className="label">Propietario</label>
+                <select className="input" value={formEditar.propietario} onChange={e => setFormEditar({ ...formEditar, propietario: e.target.value })}>
+                  <option value="JEJ">JEJ</option>
+                  <option value="Codelco">Codelco (préstamo)</option>
+                </select>
               </div>
               <div>
                 <label className="label">Accesorios incluidos</label>

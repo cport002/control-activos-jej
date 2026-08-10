@@ -44,6 +44,7 @@ export interface Activo {
   profesional_actual_id?: number | null
   profesional_nombre?: string | null
   ubicacion: 'salvador' | 'santiago'
+  propietario: 'JEJ' | 'Codelco'
   notas?: string | null
   created_at?: string
   updated_at?: string
