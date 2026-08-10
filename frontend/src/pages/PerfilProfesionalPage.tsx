@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
 import api, { fmt } from '../services/api'
 import toast from 'react-hot-toast'
-import { CheckCircle2, Download, RotateCcw, X, History } from 'lucide-react'
+import { CheckCircle2, Download, RotateCcw, X, History, ArrowLeft } from 'lucide-react'
 
 interface ActivoAsignado {
   id: number
@@ -51,7 +51,22 @@ export default function PerfilProfesionalPage() {
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<File[]>([])
   const [guardando, setGuardando] = useState(false)
+  const [pasoFirma, setPasoFirma] = useState<'datos' | 'firma'>('datos')
+  const [canvasSize, setCanvasSize] = useState({ width: 300, height: 300 })
+  const [firmaVacia, setFirmaVacia] = useState(true)
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null)
   const sigRef = useRef<SignatureCanvas | null>(null)
+
+  useEffect(() => {
+    if (pasoFirma !== 'firma') return
+    const medir = () => {
+      const el = canvasContainerRef.current
+      if (el) setCanvasSize({ width: el.clientWidth, height: el.clientHeight })
+    }
+    medir()
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [pasoFirma])
 
   const cargar = () => {
     api.get(`/public/profesional/${token}`).then(r => {
@@ -71,6 +86,13 @@ export default function PerfilProfesionalPage() {
     setAccion(tipo)
     setObservaciones('')
     setFotos([])
+    setPasoFirma('datos')
+    setFirmaVacia(true)
+  }
+
+  const irAFirma = () => {
+    setPasoFirma('firma')
+    setFirmaVacia(true)
     setTimeout(() => sigRef.current?.clear(), 0)
   }
 
@@ -224,7 +246,7 @@ export default function PerfilProfesionalPage() {
         <p className="text-center text-xs text-gray-400">Cualquier duda, contacta al área de TI de JEJ.</p>
       </div>
 
-      {firmando && (
+      {firmando && pasoFirma === 'datos' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm my-8 relative">
             <button onClick={() => setFirmando(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -247,22 +269,47 @@ export default function PerfilProfesionalPage() {
                   onChange={e => setFotos(Array.from(e.target.files || []).slice(0, 5))} />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="label mb-0">Tu firma</label>
-                  <button type="button" onClick={() => sigRef.current?.clear()} className="text-xs text-gray-400 hover:text-primary-600 inline-flex items-center gap-1">
-                    <RotateCcw className="w-3 h-3" /> Limpiar
-                  </button>
-                </div>
-                <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                  <SignatureCanvas ref={sigRef} penColor="black" canvasProps={{ width: 380, height: 160, className: 'w-full' }} />
-                </div>
-              </div>
-
-              <button className="btn-primary w-full" onClick={guardarFirma} disabled={guardando}>
-                {guardando ? 'Guardando...' : 'Confirmar y firmar'}
+              <button className="btn-primary w-full" onClick={irAFirma}>
+                Continuar a firmar →
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {firmando && pasoFirma === 'firma' && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col">
+          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+            <button onClick={() => setPasoFirma('datos')} className="text-gray-400 hover:text-gray-600">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400">{accion === 'entrega' ? 'Firma tu recepción' : 'Firma tu devolución'}</p>
+              <p className="font-semibold text-gray-900 text-sm truncate">{firmando.nombre}</p>
+            </div>
+          </div>
+
+          <div ref={canvasContainerRef} className="flex-1 min-h-0 relative bg-gray-50">
+            <SignatureCanvas
+              ref={sigRef}
+              penColor="black"
+              canvasProps={{ width: canvasSize.width, height: canvasSize.height, className: 'touch-none' }}
+              onEnd={() => setFirmaVacia(false)}
+            />
+            {firmaVacia && (
+              <p className="absolute inset-0 flex items-center justify-center text-gray-300 text-lg pointer-events-none">
+                Firma aquí con el dedo
+              </p>
+            )}
+          </div>
+
+          <div className="flex-shrink-0 p-4 border-t border-gray-100 flex gap-3">
+            <button onClick={() => { sigRef.current?.clear(); setFirmaVacia(true) }} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+              <RotateCcw className="w-4 h-4" /> Limpiar
+            </button>
+            <button className="btn-primary flex-[2]" onClick={guardarFirma} disabled={guardando}>
+              {guardando ? 'Guardando...' : 'Confirmar firma'}
+            </button>
           </div>
         </div>
       )}
