@@ -34,11 +34,27 @@ router.get('/:id', autenticar, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/profesionales/:id/activos — equipos actualmente asignados a este profesional
+// GET /api/profesionales/:id/activos — equipos actualmente asignados, más los que se dieron de
+// baja por extravío/robo mientras estaban con este profesional (esos ya no tienen
+// profesional_actual_id, quedaría vacio si no se buscaran aparte por la última acta de devolución).
 router.get('/:id/activos', autenticar, async (req, res) => {
   try {
-    const r = await sql("SELECT * FROM activos WHERE profesional_actual_id = ? AND estado = 'asignado' ORDER BY nombre", [req.params.id]);
-    res.json(r.rows);
+    const asignados = (await sql(
+      "SELECT * FROM activos WHERE profesional_actual_id = ? AND estado = 'asignado' ORDER BY nombre",
+      [req.params.id]
+    )).rows;
+
+    const perdidos = (await sql(`
+      SELECT a.*, ult.id AS acta_id, ult.condicion_equipo, ult.fecha AS fecha_baja, ult.observaciones AS observaciones_baja
+      FROM activos a
+      JOIN actas ult ON ult.id = (
+        SELECT id FROM actas WHERE activo_id = a.id AND tipo = 'devolucion' ORDER BY created_at DESC LIMIT 1
+      )
+      WHERE a.estado = 'de_baja' AND ult.profesional_id = ? AND ult.condicion_equipo IN ('extraviado', 'robado')
+      ORDER BY ult.created_at DESC
+    `, [req.params.id])).rows;
+
+    res.json({ asignados, perdidos });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

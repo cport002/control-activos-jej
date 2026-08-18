@@ -50,6 +50,13 @@ export interface Activo {
   updated_at?: string
 }
 
+export interface ActivoPerdido extends Activo {
+  acta_id: number
+  condicion_equipo: 'extraviado' | 'robado'
+  fecha_baja: string
+  observaciones_baja?: string | null
+}
+
 export interface ActivoMovimiento {
   id: number
   activo_id: number

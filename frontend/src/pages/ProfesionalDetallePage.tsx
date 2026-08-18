@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api, { fmt, whatsappUrl } from '../services/api'
-import type { Profesional, Activo, Acta } from '../types'
+import type { Profesional, Activo, ActivoPerdido, Acta } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Edit2, Link2, MessageCircle, ChevronRight, Boxes, Download, History } from 'lucide-react'
+import { ArrowLeft, Edit2, Link2, MessageCircle, ChevronRight, Boxes, Download, History, AlertTriangle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 
 const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
+const condicionLabel: Record<string, string> = { extraviado: 'Extraviado', robado: 'Robado' }
+const esPerdida = (c: string) => c === 'extraviado' || c === 'robado'
 
 const FORM_INICIAL = { nombre: '', rut: '', cargo: '', cco: '', email: '', telefono: '', tipo: 'jej', empresa: '', activo: true }
 
@@ -17,6 +19,7 @@ export default function ProfesionalDetallePage() {
   const { puedeEditar } = useAuth()
   const [profesional, setProfesional] = useState<Profesional | null>(null)
   const [activos, setActivos] = useState<Activo[]>([])
+  const [perdidos, setPerdidos] = useState<ActivoPerdido[]>([])
   const [actas, setActas] = useState<Acta[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -29,7 +32,8 @@ export default function ProfesionalDetallePage() {
       api.get('/actas', { params: { profesional_id: id } })
     ]).then(([p, a, ac]) => {
       setProfesional(p.data)
-      setActivos(a.data)
+      setActivos(a.data.asignados)
+      setPerdidos(a.data.perdidos)
       setActas(ac.data)
       setLoading(false)
     }).catch(() => { setLoading(false); toast.error('No se pudo cargar el profesional') })
@@ -160,6 +164,27 @@ export default function ProfesionalDetallePage() {
         </div>
       </div>
 
+      {perdidos.length > 0 && (
+        <div className="card p-0 overflow-hidden border border-red-200">
+          <div className="px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <h3 className="text-red-700">Equipos extraviados o robados ({perdidos.length})</h3>
+          </div>
+          <div className="divide-y divide-red-100">
+            {perdidos.map(a => (
+              <Link key={a.id} to={`/activos/${a.id}`} className="flex items-center justify-between px-6 py-3 hover:bg-red-50/60 transition-colors">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{a.nombre}</p>
+                  <p className="text-xs text-gray-400">{a.tipo} · {[a.marca, a.modelo].filter(Boolean).join(' ')} · dado de baja {fmt.fecha(a.fecha_baja)}</p>
+                  {a.observaciones_baja && <p className="text-xs text-gray-500 mt-0.5 truncate">{a.observaciones_baja}</p>}
+                </div>
+                <span className="badge-red flex-shrink-0 ml-3">{condicionLabel[a.condicion_equipo]}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="card p-0 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <History className="w-4 h-4 text-primary-600" />
@@ -184,7 +209,11 @@ export default function ProfesionalDetallePage() {
                   <td className="table-cell font-medium">
                     {a.activo_id ? <Link to={`/activos/${a.activo_id}`} className="hover:text-primary-600">{a.activo_nombre}</Link> : a.activo_nombre}
                   </td>
-                  <td className="table-cell text-gray-600 capitalize">{a.condicion_equipo.replace('_', ' ')}</td>
+                  <td className="table-cell">
+                    {esPerdida(a.condicion_equipo)
+                      ? <span className="badge-red">{condicionLabel[a.condicion_equipo]}</span>
+                      : <span className="text-gray-600 capitalize">{a.condicion_equipo.replace('_', ' ')}</span>}
+                  </td>
                   <td className="table-cell text-center">
                     <button onClick={() => descargarPDF(a.id)} title="Descargar PDF" className="text-gray-400 hover:text-primary-600 transition-colors">
                       <Download className="w-4 h-4 inline" />
