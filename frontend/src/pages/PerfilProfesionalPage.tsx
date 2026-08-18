@@ -25,9 +25,13 @@ interface HistorialItem {
   activo_nombre: string
   activo_marca?: string | null
   activo_modelo?: string | null
+  condicion_equipo: string
+  observaciones?: string | null
 }
 
 const tipoLabel: Record<string, string> = { entrega: 'Entrega', devolucion: 'Devolución' }
+const condicionLabel: Record<string, string> = { extraviado: 'Extraviado', robado: 'Robado' }
+const esPerdida = (c: string) => c === 'extraviado' || c === 'robado'
 
 function dataURLtoBlob(dataurl: string): Blob {
   const arr = dataurl.split(',')
@@ -231,12 +235,17 @@ export default function PerfilProfesionalPage() {
             <div className="divide-y divide-gray-100">
               {historial.map(h => (
                 <button key={h.acta_id} onClick={() => descargarPDF(h.acta_id)}
-                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-indigo-50/40 transition-colors text-left">
+                  className={`w-full flex items-center justify-between px-5 py-3 transition-colors text-left ${esPerdida(h.condicion_equipo) ? 'bg-red-50/60 hover:bg-red-50' : 'hover:bg-indigo-50/40'}`}>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{h.activo_nombre} — {[h.activo_marca, h.activo_modelo].filter(Boolean).join(' ')}</p>
                     <p className="text-xs text-gray-400">{fmt.fecha(h.fecha)}</p>
+                    {esPerdida(h.condicion_equipo) && h.observaciones && (
+                      <p className="text-xs text-red-600 mt-1">{h.observaciones}</p>
+                    )}
                   </div>
-                  <span className={`${h.tipo === 'entrega' ? 'badge-blue' : 'badge-green'} flex-shrink-0`}>{tipoLabel[h.tipo]}</span>
+                  <span className={`${esPerdida(h.condicion_equipo) ? 'badge-red' : h.tipo === 'entrega' ? 'badge-blue' : 'badge-green'} flex-shrink-0`}>
+                    {esPerdida(h.condicion_equipo) ? condicionLabel[h.condicion_equipo] : tipoLabel[h.tipo]}
+                  </span>
                 </button>
               ))}
             </div>

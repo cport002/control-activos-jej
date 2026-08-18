@@ -128,7 +128,7 @@ router.get('/profesional/:token/historial', async (req, res) => {
     if (!profesional) return res.status(404).json({ error: 'Link no válido' });
 
     const historial = (await sql(`
-      SELECT ac.id AS acta_id, ac.tipo, ac.fecha, ac.created_at,
+      SELECT ac.id AS acta_id, ac.tipo, ac.fecha, ac.created_at, ac.condicion_equipo, ac.observaciones,
         a.id AS activo_id, a.nombre AS activo_nombre, a.marca AS activo_marca, a.modelo AS activo_modelo
       FROM actas ac
       JOIN activos a ON a.id = ac.activo_id
