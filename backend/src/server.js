@@ -58,8 +58,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
+// Aiven (plan gratis) apaga la base de datos por inactividad. Si el backend arranca justo en ese
+// momento, la primera conexión falla — sin reintento, el proceso se caía entero y quedaba abajo
+// hasta el próximo deploy manual. Se reintenta con espera creciente antes de darse por vencido.
 async function startServer() {
-  await initDatabase();
+  const maxIntentos = 6;
+  for (let intento = 1; intento <= maxIntentos; intento++) {
+    try {
+      await initDatabase();
+      break;
+    } catch (e) {
+      if (intento === maxIntentos) {
+        console.error(`No se pudo conectar a la base de datos tras ${maxIntentos} intentos:`, e.message);
+        process.exit(1);
+      }
+      const esperaMs = intento * 5000;
+      console.warn(`Intento ${intento}/${maxIntentos} de conexión a la BD falló (${e.message}). Reintentando en ${esperaMs / 1000}s...`);
+      await new Promise(r => setTimeout(r, esperaMs));
+    }
+  }
   app.listen(PORT, () => {
     console.log(`Backend Control de Activos JEJ corriendo en puerto ${PORT} — DB: PostgreSQL (Aiven)`);
   });
