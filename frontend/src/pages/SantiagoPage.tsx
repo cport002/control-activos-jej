@@ -6,6 +6,7 @@ import type { ActivoEnSantiago } from '../types'
 import { TIPOS_ACTIVO } from '../types'
 import { PlaneTakeoff, Download, Search } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
+import { parseNotas } from '../utils/notas'
 
 export default function SantiagoPage() {
   const [equipos, setEquipos] = useState<ActivoEnSantiago[]>([])
@@ -28,18 +29,23 @@ export default function SantiagoPage() {
   useEffect(cargar, [busqueda, filtroTipo, filtroPropietario, desde, hasta])
 
   const exportarExcel = () => {
-    const filas = equipos.map(e => ({
-      Nombre: e.nombre,
-      Tipo: e.tipo,
-      Marca: e.marca || '',
-      Modelo: e.modelo || '',
-      'N° Serie': e.numero_serie || '',
-      'Rótulo Codelco': e.rotulo_codelco || '',
-      Propietario: e.propietario === 'Codelco' ? 'Codelco (préstamo)' : 'JEJ',
-      'Fecha envío a Santiago': fmt.fecha(e.fecha_envio),
-      'Último usuario': e.ultimo_usuario || '',
-      'Observaciones envío': e.observaciones_envio || '',
-    }))
+    const filas = equipos.map(e => {
+      const { ram, disco } = parseNotas(e.notas)
+      return {
+        Nombre: e.nombre,
+        Tipo: e.tipo,
+        Marca: e.marca || '',
+        Modelo: e.modelo || '',
+        'N° Serie': e.numero_serie || '',
+        'Rótulo Codelco': e.rotulo_codelco || '',
+        RAM: ram || '',
+        Disco: disco || '',
+        Propietario: e.propietario === 'Codelco' ? 'Codelco (préstamo)' : 'JEJ',
+        'Fecha envío a Santiago': fmt.fecha(e.fecha_envio),
+        'Último usuario': e.ultimo_usuario || '',
+        'Observaciones envío': e.observaciones_envio || '',
+      }
+    })
     const ws = XLSX.utils.json_to_sheet(filas)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'En Santiago')
@@ -90,6 +96,8 @@ export default function SantiagoPage() {
               <th className="table-header">Equipo</th>
               <th className="table-header">N° Serie</th>
               <th className="table-header">Rótulo Codelco</th>
+              <th className="table-header">RAM</th>
+              <th className="table-header">Disco</th>
               <th className="table-header">Fecha envío</th>
               <th className="table-header">Último usuario</th>
               <th className="table-header">Observaciones</th>
@@ -97,23 +105,28 @@ export default function SantiagoPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400">Cargando...</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-gray-400">Cargando...</td></tr>
             )}
-            {!loading && equipos.map(e => (
-              <tr key={e.id} className="table-row">
-                <td className="table-cell font-medium">
-                  <Link to={`/activos/${e.id}`} className="hover:text-primary-600">{e.nombre}</Link>
-                  <div className="text-xs text-gray-400">{[e.marca, e.modelo].filter(Boolean).join(' · ')}</div>
-                </td>
-                <td className="table-cell text-gray-600 font-mono text-xs">{e.numero_serie || '—'}</td>
-                <td className="table-cell text-gray-600 font-mono text-xs">{e.rotulo_codelco || '—'}</td>
-                <td className="table-cell text-gray-500">{fmt.fecha(e.fecha_envio)}</td>
-                <td className="table-cell text-gray-600">{e.ultimo_usuario || '—'}</td>
-                <td className="table-cell text-gray-500 text-xs">{e.observaciones_envio || '—'}</td>
-              </tr>
-            ))}
+            {!loading && equipos.map(e => {
+              const { ram, disco } = parseNotas(e.notas)
+              return (
+                <tr key={e.id} className="table-row">
+                  <td className="table-cell font-medium">
+                    <Link to={`/activos/${e.id}`} className="hover:text-primary-600">{e.nombre}</Link>
+                    <div className="text-xs text-gray-400">{[e.marca, e.modelo].filter(Boolean).join(' · ')}</div>
+                  </td>
+                  <td className="table-cell text-gray-600 font-mono text-xs">{e.numero_serie || '—'}</td>
+                  <td className="table-cell text-gray-600 font-mono text-xs">{e.rotulo_codelco || '—'}</td>
+                  <td className="table-cell text-gray-600 text-xs">{ram || '—'}</td>
+                  <td className="table-cell text-gray-600 text-xs">{disco || '—'}</td>
+                  <td className="table-cell text-gray-500">{fmt.fecha(e.fecha_envio)}</td>
+                  <td className="table-cell text-gray-600">{e.ultimo_usuario || '—'}</td>
+                  <td className="table-cell text-gray-500 text-xs">{e.observaciones_envio || '—'}</td>
+                </tr>
+              )
+            })}
             {!loading && equipos.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400">No hay equipos que coincidan con el filtro</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-gray-400">No hay equipos que coincidan con el filtro</td></tr>
             )}
           </tbody>
         </table>

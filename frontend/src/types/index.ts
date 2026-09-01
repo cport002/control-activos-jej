@@ -78,6 +78,7 @@ export interface ActivoEnSantiago {
   numero_serie?: string | null
   rotulo_codelco?: string | null
   propietario: 'JEJ' | 'Codelco'
+  notas?: string | null
   fecha_envio: string
   observaciones_envio?: string | null
   ultimo_usuario?: string | null

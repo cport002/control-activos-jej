@@ -41,7 +41,7 @@ router.get('/informes/santiago', autenticar, async (req, res) => {
   try {
     const { busqueda, tipo, propietario, desde, hasta } = req.query;
     let query = `
-      SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.rotulo_codelco, a.propietario,
+      SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.rotulo_codelco, a.propietario, a.notas,
         ult_mov.fecha AS fecha_envio, ult_mov.observaciones AS observaciones_envio,
         ult_acta.profesional_nombre AS ultimo_usuario, ult_acta.fecha AS fecha_ultimo_uso
       FROM activos a
