@@ -47,6 +47,10 @@ export default function LoginPage({ onLogin }: Props) {
               <img src="/logo-jej.png" alt="JEJ Ingeniería" className="w-full" />
             </div>
 
+            <span className="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/80 text-xs font-semibold tracking-widest uppercase mb-4">
+              CC 669
+            </span>
+
             <h1 className="text-5xl font-black leading-tight mb-4">
               <span className="text-violet-300">Control de</span><br />
               <span className="text-violet-300">Activos</span>

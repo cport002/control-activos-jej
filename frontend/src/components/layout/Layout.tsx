@@ -64,7 +64,7 @@ export default function Layout({ auth }: Props) {
           </div>
           <div className="leading-tight">
             <p className="text-white font-bold text-sm tracking-wide">JEJ INGENIERÍA</p>
-            <p className="text-white/60 text-[10px] tracking-widest uppercase font-medium">Control de Activos</p>
+            <p className="text-white/60 text-[10px] tracking-widest uppercase font-medium">Control de Activos · CC 669</p>
           </div>
           <button className="ml-auto lg:hidden text-white/70 hover:text-white" onClick={() => setSidebarOpen(false)}>
             <X size={18} />
