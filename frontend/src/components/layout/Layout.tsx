@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Boxes, UserCog, LogOut, Menu, X, History } from 'lucide-react'
+import { LayoutDashboard, Users, Boxes, UserCog, LogOut, Menu, X, History, PlaneTakeoff } from 'lucide-react'
 import { useState } from 'react'
 import type { Usuario } from '../../types'
 import api from '../../services/api'
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/activos', icon: Boxes, label: 'Activos' },
   { to: '/profesionales', icon: Users, label: 'Profesionales' },
   { to: '/historial', icon: History, label: 'Historial' },
+  { to: '/santiago', icon: PlaneTakeoff, label: 'En Santiago' },
 ]
 
 export default function Layout({ auth }: Props) {

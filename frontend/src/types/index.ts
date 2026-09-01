@@ -69,6 +69,21 @@ export interface ActivoMovimiento {
   created_at: string
 }
 
+export interface ActivoEnSantiago {
+  id: number
+  nombre: string
+  tipo: string
+  marca?: string | null
+  modelo?: string | null
+  numero_serie?: string | null
+  rotulo_codelco?: string | null
+  propietario: 'JEJ' | 'Codelco'
+  fecha_envio: string
+  observaciones_envio?: string | null
+  ultimo_usuario?: string | null
+  fecha_ultimo_uso?: string | null
+}
+
 export interface Acta {
   id: number
   activo_id: number

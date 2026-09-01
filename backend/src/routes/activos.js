@@ -33,6 +33,34 @@ router.get('/', autenticar, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/activos/informes/santiago — listado de equipos actualmente en Santiago, con el detalle
+// del envío (fecha) y el último profesional que tuvo el equipo (última acta registrada, entrega o
+// devolución) antes del envío. Debe ir ANTES de GET /:id para que Express no lo confunda con un id.
+router.get('/informes/santiago', autenticar, async (req, res) => {
+  try {
+    const r = await sql(`
+      SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.rotulo_codelco, a.propietario,
+        ult_mov.fecha AS fecha_envio, ult_mov.observaciones AS observaciones_envio,
+        ult_acta.profesional_nombre AS ultimo_usuario, ult_acta.fecha AS fecha_ultimo_uso
+      FROM activos a
+      JOIN LATERAL (
+        SELECT fecha, observaciones FROM activo_movimientos m
+        WHERE m.activo_id = a.id AND m.tipo = 'envio_santiago'
+        ORDER BY m.fecha DESC, m.created_at DESC LIMIT 1
+      ) ult_mov ON true
+      LEFT JOIN LATERAL (
+        SELECT ac.fecha, p.nombre AS profesional_nombre FROM actas ac
+        JOIN profesionales p ON p.id = ac.profesional_id
+        WHERE ac.activo_id = a.id
+        ORDER BY ac.fecha DESC, ac.created_at DESC LIMIT 1
+      ) ult_acta ON true
+      WHERE a.ubicacion = 'santiago'
+      ORDER BY ult_mov.fecha DESC
+    `);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/activos/:id
 router.get('/:id', autenticar, async (req, res) => {
   try {
