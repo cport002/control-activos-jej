@@ -33,12 +33,14 @@ router.get('/', autenticar, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/activos/informes/santiago — listado de equipos actualmente en Santiago, con el detalle
-// del envío (fecha) y el último profesional que tuvo el equipo (última acta registrada, entrega o
-// devolución) antes del envío. Debe ir ANTES de GET /:id para que Express no lo confunda con un id.
+// GET /api/activos/informes/santiago?busqueda=&tipo=&propietario=&desde=&hasta= — listado de equipos
+// actualmente en Santiago, con el detalle del envío (fecha) y el último profesional que tuvo el
+// equipo (última acta registrada, entrega o devolución) antes del envío. desde/hasta filtran por la
+// fecha de ese último envío. Debe ir ANTES de GET /:id para que Express no lo confunda con un id.
 router.get('/informes/santiago', autenticar, async (req, res) => {
   try {
-    const r = await sql(`
+    const { busqueda, tipo, propietario, desde, hasta } = req.query;
+    let query = `
       SELECT a.id, a.nombre, a.tipo, a.marca, a.modelo, a.numero_serie, a.rotulo_codelco, a.propietario,
         ult_mov.fecha AS fecha_envio, ult_mov.observaciones AS observaciones_envio,
         ult_acta.profesional_nombre AS ultimo_usuario, ult_acta.fecha AS fecha_ultimo_uso
@@ -55,8 +57,19 @@ router.get('/informes/santiago', autenticar, async (req, res) => {
         ORDER BY ac.fecha DESC, ac.created_at DESC LIMIT 1
       ) ult_acta ON true
       WHERE a.ubicacion = 'santiago'
-      ORDER BY ult_mov.fecha DESC
-    `);
+    `;
+    const params = [];
+    if (busqueda) {
+      const { clause, params: p } = condicionBusqueda(busqueda, ['a.nombre', 'a.marca', 'a.modelo', 'a.numero_serie', 'a.rotulo_codelco', 'ult_acta.profesional_nombre']);
+      query += clause;
+      params.push(...p);
+    }
+    if (tipo) { query += ' AND a.tipo = ?'; params.push(tipo); }
+    if (propietario) { query += ' AND a.propietario = ?'; params.push(propietario); }
+    if (desde) { query += ' AND ult_mov.fecha >= ?'; params.push(desde); }
+    if (hasta) { query += ' AND ult_mov.fecha <= ?'; params.push(hasta); }
+    query += ' ORDER BY ult_mov.fecha DESC';
+    const r = await sql(query, params);
     res.json(r.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
