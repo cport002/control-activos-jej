@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import api, { fmt, whatsappUrl } from '../services/api'
+import api, { fmt, whatsappUrl, descargarBlob } from '../services/api'
 import type { Profesional, Activo, ActivoPerdido, Acta } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
@@ -43,8 +43,7 @@ export default function ProfesionalDetallePage() {
   const descargarPDF = async (actaId: number) => {
     try {
       const r = await api.get(`/actas/${actaId}/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(r.data)
-      window.open(url, '_blank')
+      descargarBlob(r.data, `acta_${actaId}.pdf`)
     } catch {
       toast.error('No se pudo generar el PDF')
     }

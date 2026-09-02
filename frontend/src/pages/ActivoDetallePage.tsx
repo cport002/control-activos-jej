@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
-import api, { fmt } from '../services/api'
+import api, { fmt, descargarBlob } from '../services/api'
 import type { Activo, Acta, Profesional, ActivoMovimiento } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
@@ -224,8 +224,7 @@ export default function ActivoDetallePage() {
   const descargarPDF = async (actaId: number) => {
     try {
       const r = await api.get(`/actas/${actaId}/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(r.data)
-      window.open(url, '_blank')
+      descargarBlob(r.data, `acta_${actaId}.pdf`)
     } catch {
       toast.error('No se pudo generar el PDF')
     }

@@ -34,3 +34,17 @@ export function whatsappUrl(telefono: string, mensaje: string) {
   const numero = telefono.replace(/\D/g, '')
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
 }
+
+// Fuerza la descarga del archivo en vez de abrirlo en una pestaña nueva (window.open con un blob:
+// URL no funciona cuando el sistema está instalado como PWA en Android — no hay pestaña de
+// navegador que lo renderice y el teléfono intenta (y falla) buscar una app externa para el blob).
+export function descargarBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

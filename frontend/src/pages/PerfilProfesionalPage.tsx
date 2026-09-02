@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
-import api, { fmt } from '../services/api'
+import api, { fmt, descargarBlob } from '../services/api'
 import toast from 'react-hot-toast'
 import { CheckCircle2, Download, RotateCcw, X, History, ArrowLeft } from 'lucide-react'
 
@@ -103,8 +103,7 @@ export default function PerfilProfesionalPage() {
   const descargarPDF = async (actaId: number) => {
     try {
       const r = await api.get(`/public/profesional/${token}/acta/${actaId}/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(r.data)
-      window.open(url, '_blank')
+      descargarBlob(r.data, `acta_${actaId}.pdf`)
     } catch {
       toast.error('No se pudo generar el PDF')
     }
